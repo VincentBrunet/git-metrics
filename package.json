@@ -1,0 +1,22 @@
+{
+  "name": "git-metrics",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VincentBrunet/git-metrics.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VincentBrunet/git-metrics/issues"
+  },
+  "homepage": "https://github.com/VincentBrunet/git-metrics#readme",
+  "dependencies": {
+    "sqlite3": "^4.0.0"
+  }
+}
