@@ -1,9 +1,9 @@
 
-var gitLogs = require("./src/git/logs");
+var gitLog = require("./src/git/log");
 
-console.log("gitLogs", gitLogs);
+console.log("gitLog", gitLog);
 
-gitLogs.run("../nanovr-0.2", 365, function () {
+gitLog.run("../nanovr-0.2", 50, function () {
 
     console.log("Done");
 
