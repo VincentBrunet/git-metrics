@@ -1,11 +1,13 @@
 
 var child_process = require('child_process');
+
 var moment = require("moment");
+moment.suppressDeprecationWarnings = true;
 
 var $module = {};
 
 $module.logsOnPeriod = function (repository, maxDate, minDate, next) {
-    var command = "git log --stat=1000000000 --full-history --no-merges --no-color";
+    var command = "git log --numstat --full-history --no-merges --no-color";
     command += " --until=" + maxDate.format();
     command += " --since=" + minDate.format();
     var options = {
@@ -118,8 +120,8 @@ $module.parseLogs = function (commitsData, logs) {
                 // File changes lines
                 if (headerPassed && commentPassed) {
                     // If its a change line
-                    var fileLine = line.split("|");
-                    if (fileLine.length > 1) {
+                    var fileLine = line.split("\t");
+                    if (fileLine.length >= 3) {
                         // Read file path and change counts
                         var changeData = {
                             path: null,
@@ -127,36 +129,11 @@ $module.parseLogs = function (commitsData, logs) {
                             additions: 0,
                             total: 0,
                         };
-                        var filePath = fileLine[0].trim();
-                        var changes = fileLine[1].trim().split(" ");
-                        var changeCount = parseInt(changes[0]);
-                        var addCount = 0;
-                        var delCount = 0;
-                        if (changeCount > 0) {
-                            var changeStr = changes[1];
-                            if (changeStr) {
-                                var tickCount = 0;
-                                for (var k = 0; k < changeStr.length; k++) {
-                                    var changeType = changeStr[k];
-                                    if (changeType == "+") {
-                                        addCount++;
-                                        tickCount++;
-                                    }
-                                    if (changeType == "-") {
-                                        delCount++;
-                                        tickCount++;
-                                    }
-                                }
-                                var addRatio = addCount / tickCount;
-                                var delRatio = delCount / tickCount;
-                                addCount = addRatio * changeCount;
-                                delCount = delRatio * changeCount;
-                            }
-                            else {
-                                addCount = 0;
-                                delCount = changeCount;
-                            }
-                        }
+                        // Read log line content
+                        var filePath = fileLine[2].trim();
+                        var addCount = parseInt(fileLine[0]);
+                        var delCount = parseInt(fileLine[1]);
+                        var changeCount = addCount + delCount;
                         // If it is a renamed file
                         var renameRegex = /({.* => .*})/gi;
                         var renameCheck = filePath.match(renameRegex);
@@ -197,10 +174,24 @@ $module.parseLogs = function (commitsData, logs) {
     }
 };
 
-$module.run = function (repository, next) {
+$module.orderedStatsDict = function (dict) {
+    var ordered = [];
+    for (var key in dict) {
+        if (dict.hasOwnProperty(key)) {
+            var value = dict[key];
+            ordered.push([key, value]);
+        }
+    }
+    ordered.sort(function(a, b) {
+        return b[1] - a[1]
+    });
+    return ordered;
+};
+
+$module.run = function (repository, days, next) {
     var now = moment();
     var commits = [];
-    $module.logsUntilFail(repository, now, 50, function (maxDate, minDate, logs) {
+    $module.logsUntilFail(repository, now, days, function (maxDate, minDate, logs) {
         console.log("Parsing logs since", minDate.calendar());
         $module.parseLogs(commits, logs);
     }, function () {
@@ -210,6 +201,10 @@ $module.run = function (repository, next) {
         var additionPerAuthor = {};
         var deletionsPerAuthor = {};
         var filesPerAuthor = {};
+        var changesPerAuthorCode = {};
+        var additionPerAuthorCode = {};
+        var deletionsPerAuthorCode = {};
+        var filesPerAuthorCode = {};
         for (var i = 0; i < commits.length; i++) {
             var commit = commits[i];
             if (commit.author) {
@@ -221,6 +216,13 @@ $module.run = function (repository, next) {
                     additionPerAuthor[author] = (additionPerAuthor[author] || 0) + change.additions;
                     deletionsPerAuthor[author] = (deletionsPerAuthor[author] || 0) + change.deletions;
                     filesPerAuthor[author] = (filesPerAuthor[author] || 0) + 1;
+                    if (change.path.endsWith(".cs"))
+                    {
+                        changesPerAuthorCode[author] = (changesPerAuthorCode[author] || 0) + change.total;
+                        additionPerAuthorCode[author] = (additionPerAuthorCode[author] || 0) + change.additions;
+                        deletionsPerAuthorCode[author] = (deletionsPerAuthorCode[author] || 0) + change.deletions;
+                        filesPerAuthorCode[author] = (filesPerAuthorCode[author] || 0) + 1;
+                    }
                 }
             }
             else {
@@ -235,12 +237,16 @@ $module.run = function (repository, next) {
             }
         }
         console.log("Log done", commits.length);
-        console.log("Commits per author", commitsPerAuthor);
-        console.log("Commits per day", commitsPerDay);
-        console.log("Changes per author", changesPerAuthor);
-        console.log("Additions per author", additionPerAuthor);
-        console.log("Deletions per author", deletionsPerAuthor);
-        console.log("Files per author", filesPerAuthor);
+        console.log("Commits per author", $module.orderedStatsDict(commitsPerAuthor));
+        console.log("Commits per day", $module.orderedStatsDict(commitsPerDay));
+        console.log("Changes per author", $module.orderedStatsDict(changesPerAuthor));
+        console.log("Additions per author", $module.orderedStatsDict(additionPerAuthor));
+        console.log("Deletions per author", $module.orderedStatsDict(deletionsPerAuthor));
+        console.log("Files per author", $module.orderedStatsDict(filesPerAuthor));
+        console.log("Changes per author (.cs)", $module.orderedStatsDict(changesPerAuthorCode));
+        console.log("Additions per author (.cs)", $module.orderedStatsDict(additionPerAuthorCode));
+        console.log("Deletions per author (.cs)", $module.orderedStatsDict(deletionsPerAuthorCode));
+        console.log("Files per author (.cs)", $module.orderedStatsDict(filesPerAuthorCode));
         return next();
     });
 };
