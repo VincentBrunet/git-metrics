@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/VincentBrunet/git-metrics#readme",
   "dependencies": {
+    "moment": "^2.22.1",
     "sqlite3": "^4.0.0"
   }
 }
