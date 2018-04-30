@@ -2,9 +2,9 @@
 var moment = require("moment");
 moment.suppressDeprecationWarnings = true;
 
-var $module = {};
+var $this = {};
 
-$module.parseFilePaths = function (filePath) {
+$this.parseFilePaths = function (filePath) {
     // Check if path contains renaming pattern
     var renameRegex = /({.* => .*})/gi;
     var renameCheck = filePath.match(renameRegex);
@@ -22,7 +22,7 @@ $module.parseFilePaths = function (filePath) {
     return [filePath];
 };
 
-$module.parseLogs = function (commitsData, logs) {
+$this.parseLogs = function (commitsData, logs) {
     // Take raw logs and split into commits and commit lines
     var allLines = logs.split(/\r?\n/);
     var commitsLines = [];
@@ -132,7 +132,7 @@ $module.parseLogs = function (commitsData, logs) {
                             total: 0,
                         };
                         // Read log line content
-                        var filePaths = $module.parseFilePaths(fileLine[2].trim());
+                        var filePaths = $this.parseFilePaths(fileLine[2].trim());
                         var addCount = parseInt(fileLine[0]);
                         var delCount = parseInt(fileLine[1]);
                         var changeCount = addCount + delCount;
@@ -160,4 +160,4 @@ $module.parseLogs = function (commitsData, logs) {
     }
 };
 
-module.exports = $module;
+module.exports = $this;

@@ -4,9 +4,9 @@ var moment = require("moment");
 
 var gitParse = require("./parse");
 
-var $module = {};
+var $this = {};
 
-$module.logsOnPeriod = function (repository, maxDate, minDate, next) {
+$this.logsOnPeriod = function (repository, maxDate, minDate, next) {
     var command = "git log --numstat --full-history --no-merges --no-color --summary";
     command += " --until=" + maxDate.format();
     command += " --since=" + minDate.format();
@@ -24,22 +24,22 @@ $module.logsOnPeriod = function (repository, maxDate, minDate, next) {
     });
 };
 
-$module.logsOnPastDays = function (repository, maxDate, pastDays, logged, next) {
+$this.logsOnPastDays = function (repository, maxDate, pastDays, logged, next) {
     if (pastDays <= 0) {
         return next();
     }
     var minDate = moment(maxDate).subtract(1, 'days');
-    $module.logsOnPeriod(repository, maxDate, minDate, function (success, result, error) {
+    $this.logsOnPeriod(repository, maxDate, minDate, function (success, result, error) {
         if (success) {
             logged(maxDate, minDate, result);
-            return $module.logsOnPastDays(repository, minDate, pastDays - 1, logged, next);
+            return $this.logsOnPastDays(repository, minDate, pastDays - 1, logged, next);
         } else {
             return next();
         }
     });
 };
 
-$module.orderedStatsDict = function (dict) {
+$this.orderedStatsDict = function (dict) {
     var ordered = [];
     for (var key in dict) {
         if (dict.hasOwnProperty(key)) {
@@ -53,13 +53,15 @@ $module.orderedStatsDict = function (dict) {
     return ordered;
 };
 
-$module.run = function (repository, days, next) {
+$this.run = function (repository, days, next) {
     var now = moment();
     var commits = [];
-    $module.logsOnPastDays(repository, now, days, function (maxDate, minDate, logs) {
+    $this.logsOnPastDays(repository, now, days, function (maxDate, minDate, logs) {
         console.log("Parsing logs since", minDate.calendar());
         gitParse.parseLogs(commits, logs);
     }, function () {
+        return next(true, commits, null);
+        /*
         var commitsPerAuthor = {};
         var commitsPerDay = {};
         var changesPerAuthor = {};
@@ -102,18 +104,19 @@ $module.run = function (repository, days, next) {
             }
         }
         console.log("Log done", commits.length);
-        console.log("Commits per author", $module.orderedStatsDict(commitsPerAuthor));
-        console.log("Commits per day", $module.orderedStatsDict(commitsPerDay));
-        console.log("Changes per author", $module.orderedStatsDict(changesPerAuthor));
-        console.log("Additions per author", $module.orderedStatsDict(additionPerAuthor));
-        console.log("Deletions per author", $module.orderedStatsDict(deletionsPerAuthor));
-        console.log("Files per author", $module.orderedStatsDict(filesPerAuthor));
-        console.log("Changes per author (.cs)", $module.orderedStatsDict(changesPerAuthorCode));
-        console.log("Additions per author (.cs)", $module.orderedStatsDict(additionPerAuthorCode));
-        console.log("Deletions per author (.cs)", $module.orderedStatsDict(deletionsPerAuthorCode));
-        console.log("Files per author (.cs)", $module.orderedStatsDict(filesPerAuthorCode));
+        console.log("Commits per author", $this.orderedStatsDict(commitsPerAuthor));
+        console.log("Commits per day", $this.orderedStatsDict(commitsPerDay));
+        console.log("Changes per author", $this.orderedStatsDict(changesPerAuthor));
+        console.log("Additions per author", $this.orderedStatsDict(additionPerAuthor));
+        console.log("Deletions per author", $this.orderedStatsDict(deletionsPerAuthor));
+        console.log("Files per author", $this.orderedStatsDict(filesPerAuthor));
+        console.log("Changes per author (.cs)", $this.orderedStatsDict(changesPerAuthorCode));
+        console.log("Additions per author (.cs)", $this.orderedStatsDict(additionPerAuthorCode));
+        console.log("Deletions per author (.cs)", $this.orderedStatsDict(deletionsPerAuthorCode));
+        console.log("Files per author (.cs)", $this.orderedStatsDict(filesPerAuthorCode));
         return next();
+        */
     });
 };
 
-module.exports = $module;
+module.exports = $this;
