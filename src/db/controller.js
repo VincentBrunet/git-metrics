@@ -1,68 +1,77 @@
 
-var sqlite3 = require("sqlite3").verbose();
-var db = new sqlite3.Database(":memory:");
-
 var core = require("../core");
 
-$this = {};
+var database = require('knex')({
+    client: 'sqlite3',
+    connection: {
+        filename: "./database/dev.sqlite3",
+    },
+});
+database.on('query', function (queryData) {
+    /*
+    var uid = queryData.__knexUid;
+    console.log("DB@" + uid);
+    console.log("--");
+    console.log(queryData.sql);
+    console.log("--");
+    */
+});
 
-$this.drop = function (tableName, next) {
-    var sql = "DROP TABLE " + tableName;
-    console.log("SQL", sql);
-    db.run(sql, function (error) {
-        if (error) {
-            return next(false, null, error);
-        }
-        return next(true, this.changes);
+var $local = {};
+
+$local._query = function (tableName) {
+    // Locally accessible object
+    var self = this;
+    // Use the specified object
+    self._internal = database;
+    // If the user specified a table name to query
+    if (tableName !== undefined) {
+        self._internal = self._internal(tableName);
+    }
+    // Copy the knex functionalities
+    var methods = core.functions(database);
+    core.for(methods, function (idx, method) {
+        // Chained method dont need to be chained anymore
+        self[method] = function () {
+            var args = Array.from(arguments);
+            var result = self._internal[method].apply(self._internal, args);
+            self._internal = result;
+            return self;
+        };
+        // Also create a copy (usefull for overrides)
+        self["_" + method] = self[method];
     });
+    // Execute the query with a callback
+    self.execute = function (done) {
+        self._internal.then(function (datas) {
+            var rows = datas;
+            if (!Array.isArray(rows)) {
+                rows = core.values(datas);
+            }
+            if (done) {
+                return done(true, rows);
+            }
+        }).catch(function (error) {
+            if (done) {
+                return done(false, null, error);
+            }
+        });
+    };
+    // Raw sql string
+    self.toString = function (a) {
+        return self._internal.toString(a);
+    };
 };
 
-$this.table = function (tableName, tableFields, next) {
-    var sql = "CREATE TABLE " + tableName;
-    var fields = [];
-    core.for(tableFields, function (key, value) {
-        fields.push(key + " " + value);
-    });
-    sql += "(" + fields.join(", ") + ")";
-    console.log("SQL", sql);
-    db.run(sql, function (error) {
-        if (error) {
-            return next(false, null, error);
-        }
-        return next(true, this.changes);
-    });
+var $this = {};
+
+$this.query = function (tableName) {
+    var q = new ($local._query)(tableName);
+    return q;
 };
 
-$this.insert = function (tableName, tableFields, tableData, next) {
-    var sql = "INSERT INTO " + tableName;
-    sql += "(" + tableFields.join(", ") + ")";
-    var tableFieldPlaceholders = [];
-    core.repeat(tableFields.length, function (name, def) {
-        tableFieldPlaceholders.push("?");
-    });
-    var tableDataPlaceholders = [];
-    core.repeat(tableData.length / tableFields.length, function (idx, value) {
-        tableDataPlaceholders.push("(" + tableFieldPlaceholders.join(", ") + ")");
-    });
-    sql += " VALUES " + tableDataPlaceholders.join(", ");
-    console.log("SQL", sql);
-    db.run(sql, tableData, function (error) {
-        if (error) {
-            return next(false, null, error);
-        }
-        return next(true, this.changes);
-    });
-};
-
-$this.select = function (tableName, select, next) {
-    var sql = "SELECT " + select;
-    console.log("SQL", sql);
-    db.all(sql, [], function (error, rows) {
-        if (error) {
-            return next(false, null, error);
-        }
-        return next(true, rows);
-    });
+$this.rawQuery = function (str) {
+    return $this.query().raw(str);
 };
 
 module.exports = $this;

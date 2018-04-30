@@ -1,5 +1,7 @@
 
-$this = {};
+var _ = require("lodash");
+
+var $this = {};
 
 $this.for = function (collection, elem, done) {
     if (Array.isArray(collection)) {
@@ -34,5 +36,9 @@ $this.repeat = function (times, elem, done) {
         done();
     }
 };
+
+$this.functions = _.functions;
+$this.values = _.values;
+$this.keys = _.keys;
 
 module.exports = $this;

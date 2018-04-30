@@ -2,7 +2,6 @@
 var gitLog = require("./src/git/log");
 
 var dbController = require("./src/db/controller");
-var dbInit = require("./src/db/init");
 var dbPump = require("./src/db/pump");
 
 var repositoryPath = process.argv[2];
@@ -14,18 +13,27 @@ gitLog.run(repositoryPath, repositoryDays, function (success, commits, error) {
     console.log("Parsed", success, commits.length);
 
     if (success) {
-        dbInit.build(function () {
-            dbPump.uploadCommits(commits, function () {
-                console.log("Uploaded");
 
-                dbController.select("", "* FROM git_commit ORDER BY hash", function (success, results, error) {
+        dbPump.uploadCommits(commits, function (success, results, error) {
 
-                    results.forEach(function (row) {
-                        console.log("Row", row);
-                    });
+            console.log("Uploaded", success, results, error);
+
+            var query = dbController.query("git_commit");
+            query.select("*");
+            query.execute(function (success, results, error) {
+                console.log("Read", success, results, error);
+            });
+
+            /*
+            dbController.select("", "* FROM git_commit ORDER BY hash", function (success, results, error) {
+
+                results.forEach(function (row) {
+                    console.log("Row", row);
                 });
             });
+            */
         });
+
     }
 
 });

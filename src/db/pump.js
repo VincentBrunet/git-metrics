@@ -3,22 +3,25 @@ var core = require("../core");
 
 var dbController = require("./controller");
 
-$this = {};
+var $this = {};
 
 $this.uploadCommits = function (commits, next) {
-
-    var gitCommitsTable = "git_commit";
-    var gitCommitsFields = ["hash", "comment", "date"];
-    var gitCommitsData = [];
-
+    // Format data for DB insertion
+    var commitsInserted = [];
     core.for(commits, function (idx, commit) {
-        gitCommitsData.push(commit.hash);
-        gitCommitsData.push(commit.comment.join("\n"));
-        gitCommitsData.push(commit.date.valueOf());
+        commitsInserted.push({
+            "hash": commit.hash,
+            "comment": commit.comment.join("\n"),
+            "date": commit.date.valueOf(),
+        });
     });
-
-    dbController.insert(gitCommitsTable, gitCommitsFields, gitCommitsData, next);
-
+    // Run insert query
+    var query = dbController.query("git_commit");
+    query.insert(commitsInserted, true);
+    var rawQuery = dbController.rawQuery("insert or ignore" + query.toString().substring(6));
+    rawQuery.execute(function (success, results, error) {
+        return next(success, results, error);
+    });
 };
 
 module.exports = $this;
