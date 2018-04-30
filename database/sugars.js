@@ -98,12 +98,14 @@ $sugars.Operations = function (knex, Promise) {
     });
   }
 
+  // Add a cross-table column relation
   self.addForeignLink = function (tableName, columnName, destination) {
     self.editTable(tableName, function (table) {
       table.foreign(columnName).references(destination);
     });
   };
 
+  // Custom script to execute on migration
   self.script = function (next) {
     var promise = new Promise(function (resolve, reject) {
       return next(knex, resolve, reject);

@@ -60,8 +60,8 @@ $this.parseLogs = function (commitsData, logs) {
             comment: [],
             additions: [],
             deletions: [],
-            changes: [],
             renames: [],
+            changes: [],
             raw: lines,
         };
         // Parsing states
@@ -136,12 +136,6 @@ $this.parseLogs = function (commitsData, logs) {
                         var addCount = parseInt(fileLine[0]);
                         var delCount = parseInt(fileLine[1]);
                         var changeCount = addCount + delCount;
-                        // Save data
-                        changeData.path = filePaths[0];
-                        changeData.additions = addCount;
-                        changeData.deletions = delCount;
-                        changeData.total = changeCount;
-                        commitData.changes.push(changeData);
                         // If we have a rename
                         if (filePaths.length > 1) {
                             var renameData = {
@@ -150,6 +144,12 @@ $this.parseLogs = function (commitsData, logs) {
                             };
                             commitData.renames.push(renameData);
                         }
+                        // Save data
+                        changeData.path = filePaths[0];
+                        changeData.additions = addCount;
+                        changeData.deletions = delCount;
+                        changeData.total = changeCount;
+                        commitData.changes.push(changeData);
                     }
                     continue;
                 }

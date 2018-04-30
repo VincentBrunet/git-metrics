@@ -1,4 +1,5 @@
 
+var gitRepo = require("./src/git/repo");
 var gitLog = require("./src/git/log");
 
 var dbController = require("./src/db/controller");
@@ -8,13 +9,15 @@ var repositoryPath = process.argv[2];
 var repositoryDays = parseInt(process.argv[3]);
 console.log("Reading history of repository", repositoryPath, "for", repositoryDays, "days");
 
-gitLog.run(repositoryPath, repositoryDays, function (success, commits, error) {
+gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
 
-    console.log("Parsed", success, commits.length);
+    console.log("Repo", repositoryUrl);
 
-    if (success) {
+    gitLog.logCommitsOfPreviousDays(repositoryPath, repositoryDays, function (success, commitsList, error) {
 
-        dbPump.uploadCommits(commits, function (success, results, error) {
+        console.log("Parsed", success, commitsList.length);
+
+        dbPump.uploadCommits(repositoryUrl, commitsList, function (success, results, error) {
 
             console.log("Uploaded", success, results, error);
 
@@ -24,16 +27,8 @@ gitLog.run(repositoryPath, repositoryDays, function (success, commits, error) {
                 console.log("Read", success, results, error);
             });
 
-            /*
-            dbController.select("", "* FROM git_commit ORDER BY hash", function (success, results, error) {
-
-                results.forEach(function (row) {
-                    console.log("Row", row);
-                });
-            });
-            */
         });
 
-    }
+    });
 
 });
