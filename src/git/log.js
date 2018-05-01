@@ -24,7 +24,7 @@ $this.logOnPeriod = function (repository, maxDate, minDate, next) {
     });
 };
 
-$this.logOnPastDays = function (repository, maxDate, pastDays, logged, next) {
+$this.logEachPastDays = function (repository, maxDate, pastDays, logged, next) {
     if (pastDays <= 0) {
         return next();
     }
@@ -32,21 +32,21 @@ $this.logOnPastDays = function (repository, maxDate, pastDays, logged, next) {
     $this.logOnPeriod(repository, maxDate, minDate, function (success, result, error) {
         if (success) {
             logged(maxDate, minDate, result);
-            return $this.logOnPastDays(repository, minDate, pastDays - 1, logged, next);
+            return $this.logEachPastDays(repository, minDate, pastDays - 1, logged, next);
         } else {
             return next();
         }
     });
 };
 
-$this.logCommitsOfPreviousDays = function (repository, days, next) {
+$this.logsOfPreviousDays = function (repository, days, next) {
     var now = moment();
-    var commits = [];
-    $this.logOnPastDays(repository, now, days, function (maxDate, minDate, logs) {
+    var commitsLogs = [];
+    $this.logEachPastDays(repository, now, days, function (maxDate, minDate, logs) {
         console.log("Parsing logs since", minDate.calendar());
-        gitParse.parseLogs(commits, logs);
+        commitsLogs.push(logs);
     }, function () {
-        return next(true, commits, null);
+        return next(true, commitsLogs, null);
     });
 };
 

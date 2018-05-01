@@ -2,6 +2,8 @@
 var moment = require("moment");
 moment.suppressDeprecationWarnings = true;
 
+var core = require("../core");
+
 var $this = {};
 
 $this.parseFilePaths = function (filePath) {
@@ -22,7 +24,7 @@ $this.parseFilePaths = function (filePath) {
     return [filePath];
 };
 
-$this.parseLogs = function (commitsData, logs) {
+$this.parseLog = function (commitsData, logs) {
     // Take raw logs and split into commits and commit lines
     var allLines = logs.split(/\r?\n/);
     var commitsLines = [];
@@ -158,6 +160,14 @@ $this.parseLogs = function (commitsData, logs) {
         // Save all commit data parsed
         commitsData.push(commitData);
     }
+};
+
+$this.parseLogList = function (commitsLogs) {
+    var commits = [];
+    core.for(commitsLogs, function (idx, commitsLog) {
+        $this.parseLog(commits, commitsLog);
+    });
+    return commits;
 };
 
 module.exports = $this;
