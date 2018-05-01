@@ -75,8 +75,8 @@ $this.updateCommits = function (repositoryId, authorIdByName, commitsList, next)
     // Run insert query
     var query = dbController.query("git_commit");
     query.insert(commitsInserted);
-    var rawQuery = dbController.rawQuery("insert or replace" + query.toString().substring(6));
-    query.execute(function (success, results, error) {
+    var rawQuery = dbController.rawQuery("insert or ignore" + query.toString().substring(6));
+    rawQuery.execute(function (success, results, error) {
         console.log("updateCommits", "res1");
         var query = dbController.query("git_commit");
         query.select(["id", "hash"]);
@@ -104,7 +104,7 @@ $this.updateFilesInsertions = function (repositoryId, commitIdByHash, commitsLis
         });
         core.for(addedPaths, function (idx, path) {
             if (!commitIdByHash[commit.hash]) {
-                //console.log("Cannot find hash", commit.hash);
+                console.log("Cannot find hash", commit.hash);
             }
             else {
                 commitsFilesInserted.push({
@@ -116,6 +116,9 @@ $this.updateFilesInsertions = function (repositoryId, commitIdByHash, commitsLis
             }
         });
     });
+    if (commitsFilesInserted.length <= 0) {
+        return next(true, []);
+    }
     var query = dbController.query("git_file");
     query.insert(commitsFilesInserted);
     var rawQuery = dbController.rawQuery("insert or ignore" + query.toString().substring(6));
@@ -241,6 +244,9 @@ $this.updateChanges = function (repositoryId, commitIdByHash, commitsList, next)
                 });
             });
         });
+        if (insertedChanges.length <= 0) {
+            return next(true, []);
+        }
         var query = dbController.query("git_change");
         query.insert(insertedChanges);
         var rawQuery = dbController.rawQuery("insert or ignore" + query.toString().substring(6));
