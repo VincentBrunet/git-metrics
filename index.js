@@ -1,4 +1,6 @@
 
+var core = require("./src/core");
+
 var gitRepo = require("./src/git/repo");
 var gitLog = require("./src/git/log");
 var gitParse = require("./src/git/parse");
@@ -21,15 +23,31 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
 
         console.log("Parsed", success, commitsList.length);
 
-        dbPump.uploadCommits(repositoryUrl, commitsList, function (success, results, error) {
+        dbPump.updateAll(repositoryUrl, commitsList, function (success, results, error) {
 
             console.log("Uploaded", success, results, error);
 
-            var query = dbController.query("git_commit");
-            query.select("*");
-            query.execute(function (success, results, error) {
+            var tables = [
+                "git_author",
+                "git_repo",
+                "git_commit",
+                "git_file",
+                "git_rename",
+                "git_change",
+            ];
+            var queries = {};
+            core.for(tables, function (idx, tableName) {
+                var query = dbController.query(tableName);
+                query.count();
+                queries[tableName] = query;
+            });
+            dbController.parallel(queries, function (success, results, error) {
 
-                console.log("Read", success, results, error);
+                console.log("Read", success);
+
+                core.for(results, function (key, result) {
+                    console.log("Result", key, result.datas[0]["count(*)"]);
+                });
 
             });
 

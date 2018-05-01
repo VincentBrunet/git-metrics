@@ -16,17 +16,14 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.addIndex("git_file", "git_repo_id");
     $mg.addIndex("git_file", "add_git_commit_id");
     $mg.addIndex("git_file", "del_git_commit_id");
-    $mg.addIndex("git_file", "add_time");
-    $mg.addIndex("git_file", "del_time");
+    $mg.addIndex("git_file", "path");
 
-    $mg.addIndex("git_path", "git_file_id");
-    $mg.addIndex("git_path", "add_git_commit_id");
-    $mg.addIndex("git_path", "del_git_commit_id");
-    $mg.addIndex("git_path", "add_time");
-    $mg.addIndex("git_path", "del_time");
+    $mg.addIndex("git_rename", "git_commit_id");
+    $mg.addIndex("git_rename", "before_git_file_id");
+    $mg.addIndex("git_rename", "after_git_file_id");
 
     $mg.addIndex("git_change", "git_commit_id");
-    $mg.addIndex("git_change", "git_path_id");
+    $mg.addIndex("git_change", "git_file_id");
 
 });
 
@@ -45,16 +42,13 @@ exports.down = $sugar.migration(function ($mg) {
     $mg.dropIndex("git_file", "git_repo_id");
     $mg.dropIndex("git_file", "add_git_commit_id");
     $mg.dropIndex("git_file", "del_git_commit_id");
-    $mg.dropIndex("git_file", "add_time");
-    $mg.dropIndex("git_file", "del_time");
+    $mg.dropIndex("git_file", "path");
 
-    $mg.dropIndex("git_path", "git_file_id");
-    $mg.dropIndex("git_path", "add_git_commit_id");
-    $mg.dropIndex("git_path", "del_git_commit_id");
-    $mg.dropIndex("git_path", "add_time");
-    $mg.dropIndex("git_path", "del_time");
+    $mg.dropIndex("git_rename", "git_commit_id");
+    $mg.dropIndex("git_rename", "before_git_file_id");
+    $mg.dropIndex("git_rename", "after_git_file_id");
 
     $mg.dropIndex("git_change", "git_commit_id");
-    $mg.dropIndex("git_change", "git_path_id");
+    $mg.dropIndex("git_change", "git_file_id");
 
 });

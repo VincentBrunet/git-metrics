@@ -41,4 +41,6 @@ $this.functions = _.functions;
 $this.values = _.values;
 $this.keys = _.keys;
 
+$this.isArray = _.isArray;
+
 module.exports = $this;

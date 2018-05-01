@@ -41,6 +41,14 @@ $local._query = function (tableName) {
         // Also create a copy (usefull for overrides)
         self["_" + method] = self[method];
     });
+    // Easier selection aliases
+    self.selectAs = function (dict) {
+        var columns = [];
+        core.for(dict, function (key, value) {
+            columns.push(key + " AS " + value);
+        });
+        return self.select(columns);
+    };
     // Execute the query with a callback
     self.execute = function (done) {
         self._internal.then(function (datas) {
@@ -48,8 +56,13 @@ $local._query = function (tableName) {
             if (!Array.isArray(rows)) {
                 rows = core.values(datas);
             }
-            if (done) {
-                return done(true, rows);
+            try {
+                if (done) {
+                    return done(true, rows);
+                }
+            }
+            catch (e) {
+                console.log("Error while processing query results", e);
             }
         }).catch(function (error) {
             if (done) {
@@ -73,5 +86,48 @@ $this.query = function (tableName) {
 $this.rawQuery = function (str) {
     return $this.query().raw(str);
 };
+
+$this.parallel = function (queries, done) {
+    var asArray = core.isArray(queries);
+    var _results = {};
+    if (asArray) {
+        _results = [];
+    }
+    var _success = true;
+    var _todo = 0;
+    var _error = undefined;
+    var _scheduled = 0;
+    core.for(queries, function (key, query) {
+        _scheduled += 1;
+        _todo += 1;
+        var result = {
+            success: false,
+        };
+        if (asArray) {
+            _results.push(result);
+        }
+        else {
+            _results[key] = result;
+        }
+        query.execute(function (success, datas, error) {
+            result.success = success;
+            result.datas = datas;
+            result.error = error;
+            if (!success) {
+                if (!_error) {
+                    _error = error;
+                }
+                _success = false;
+            }
+            _todo -= 1;
+            if (_todo <= 0) {
+                return done(_success, _results, _error);
+            }
+        });
+    });
+    if (_scheduled <= 0) {
+        return done(_success, _results, _error);
+    }
+}
 
 module.exports = $this;
