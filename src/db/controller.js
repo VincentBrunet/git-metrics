@@ -128,6 +128,30 @@ $this.parallel = function (queries, done) {
     if (_scheduled <= 0) {
         return done(_success, _results, _error);
     }
-}
+};
+
+$this.combined = function (queries, next) {
+    $this.parallel(queries, function (success, results, error) {
+        if (!success) {
+            return next(false, null, error);
+        }
+        var finalResults = [];
+        core.for(results, function (idx, result) {
+            core.for(result.datas, function (idx, data) {
+                finalResults.push(data);
+            })
+        });
+        return next(success, finalResults, error);
+    });
+};
+
+$this.batch = function (datas, queryGenerator, done) {
+    var chunks = core.chunks(datas, 50);
+    var queries = [];
+    core.for(chunks, function (idx, chunk) {
+        queries.push(queryGenerator(chunk));
+    });
+    return queries;
+};
 
 module.exports = $this;

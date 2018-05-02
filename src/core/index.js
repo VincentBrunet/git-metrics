@@ -37,6 +37,24 @@ $this.repeat = function (times, elem, done) {
     }
 };
 
+$this.chunks = function (list, chunkSize) {
+    var chunks = [];
+    var currentChunk = [];
+    var currentNb = 0;
+    $this.for(list, function (idx, elem) {
+        currentNb++;
+        currentChunk.push(elem);
+        if (currentNb % chunkSize == 0) {
+            chunks.push(currentChunk);
+            currentChunk = [];
+        }
+    });
+    if (currentChunk.length > 0) {
+        chunks.push(currentChunk);
+    }
+    return chunks;
+};
+
 $this.functions = _.functions;
 $this.values = _.values;
 $this.keys = _.keys;
