@@ -61,10 +61,11 @@ $local._query = function (tableName) {
                     return done(true, rows);
                 }
             }
-            catch (e) {
-                console.log("Error while processing query results", e);
+            catch (error) {
+                console.log("Error while processing query results", error);
             }
         }).catch(function (error) {
+            console.log("Error while processing query", error);
             if (done) {
                 return done(false, null, error);
             }
@@ -146,7 +147,7 @@ $this.combined = function (queries, next) {
 };
 
 $this.batch = function (datas, queryGenerator, done) {
-    var chunks = core.chunks(datas, 50);
+    var chunks = core.chunks(datas, 100);
     var queries = [];
     core.for(chunks, function (idx, chunk) {
         queries.push(queryGenerator(chunk));

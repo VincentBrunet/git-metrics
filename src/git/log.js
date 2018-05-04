@@ -17,7 +17,7 @@ $this.logOnPeriod = function (repository, maxDate, minDate, next) {
         cwd: repository,
         maxBuffer: 1024 * 1024 * 1024, // 1 Gb max output
     };
-    console.log("Reading commits of", maxDate.format("LL"));
+    console.log("Reading commits from", maxDate.format("LL"), "to", minDate.format("LL"));
     child_process.exec(command, options, function callback(error, stdout, stderr) {
         if (error == null) {
             return next(true, stdout, null);
@@ -29,10 +29,11 @@ $this.logOnPeriod = function (repository, maxDate, minDate, next) {
 };
 
 $this.logEachPastDays = function (repository, maxDate, pastDays, pastLines, next) {
-    if (pastDays <= 0) {
+    if (pastDays <= 0 || pastDays == null || pastDays == undefined) {
         return next(true, pastLines);
     }
-    var minDate = moment(maxDate).subtract(1, 'days');
+    var daysLogged = Math.min(pastDays, 7);
+    var minDate = moment(maxDate).subtract(daysLogged, 'days');
     $this.logOnPeriod(repository, maxDate, minDate, function (success, result, error) {
         if (!success) {
             return next(false, pastLines, error);
@@ -42,7 +43,7 @@ $this.logEachPastDays = function (repository, maxDate, pastDays, pastLines, next
             core.for(allLines, function (idx, line) {
                 pastLines.push(line);
             });
-            return $this.logEachPastDays(repository, minDate, pastDays - 1, pastLines, next);
+            return $this.logEachPastDays(repository, minDate, pastDays - daysLogged, pastLines, next);
         }
     });
 };
