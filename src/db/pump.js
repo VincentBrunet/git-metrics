@@ -6,6 +6,7 @@ var dbController = require("./controller");
 var $this = {};
 
 $this.updateRepository = function (repositoryUrl, next) {
+    // Insert repository if not yet known
     var query = dbController.query("git_repo");
     query.insert({
         "url": repositoryUrl,
@@ -15,9 +16,10 @@ $this.updateRepository = function (repositoryUrl, next) {
         if (!success) {
             console.log("Repository update error", success, results, error);
         }
+        // Fetch existing repository infos
         var query = dbController.query("git_repo");
-        query.select(["id", "url"]);
         query.where("url", repositoryUrl);
+        query.select(["id", "url"]);
         query.execute(function (success, results, error) {
             return next(success, results[0].id, error);
         });
@@ -30,10 +32,8 @@ $this.updateAuthors = function (commitsList, next) {
     core.for(commitsList, function (idx, commit) {
         commitsAuthors[commit.author] = true;
     });
-    var commitsAuthorsNames = [];
     var commitsAuthorsInserted = [];
     core.for(commitsAuthors, function (key, value) {
-        commitsAuthorsNames.push(key);
         commitsAuthorsInserted.push({
             name: key,
         });
@@ -44,12 +44,12 @@ $this.updateAuthors = function (commitsList, next) {
         query.insert(chunk);
         return dbController.rawQuery("insert or ignore" + query.toString().substring(6));
     });
-    dbController.parallel(batch, function (success, results, error) {
+    dbController.combined(batch, function (success, results, error) {
         // Batch author reading
-        var batch = dbController.batch(commitsAuthorsNames, function (chunk) {
+        var batch = dbController.batch(core.keys(commitsAuthors), function (chunk) {
             var query = dbController.query("git_author");
-            query.select(["id", "name"]);
             query.whereIn("name", chunk);
+            query.select(["id", "name"]);
             return query;
         });
         dbController.combined(batch, function (success, results, error) {
@@ -92,8 +92,9 @@ $this.updateCommits = function (repositoryId, authorIdByName, commitsList, next)
         // Batch commit reading
         var batch = dbController.batch(commitsHashes, function (chunk) {
             var query = dbController.query("git_commit");
-            query.select(["id", "hash"]);
+            query.where("git_repo_id", repositoryId);
             query.whereIn("hash", chunk);
+            query.select(["id", "hash"]);
             return query;
         });
         dbController.combined(batch, function (success, results, error) {
@@ -104,6 +105,33 @@ $this.updateCommits = function (repositoryId, authorIdByName, commitsList, next)
             });
             return next(success, commitIdByHash, error);
         });
+    });
+};
+
+$this.updateTree = function (repositoryId, commitIdByHash, commitsList, next) {
+    // List all commit parenting relations
+    var commitsTreeInserted = [];
+    core.for(commitsList, function (idx, commit) {
+        var commitId = commitIdByHash[commit.hash];
+        core.for(commit.parents, function (idx, parentHash) {
+            var parentId = commitIdByHash[parentHash];
+            if (parentId) {
+                commitsTreeInserted.push({
+                    "git_repo_id": repositoryId,
+                    "git_commit_id": commitId,
+                    "parent_git_commit_id": parentId,
+                });
+            }
+        });
+    });
+    // Batch file insertion
+    var batch = dbController.batch(commitsTreeInserted, function (chunk) {
+        var query = dbController.query("git_tree");
+        query.insert(chunk);
+        return dbController.rawQuery("insert or ignore" + query.toString().substring(6));
+    });
+    dbController.combined(batch, function (success, results, error) {
+        return next(success, results, error);
     });
 };
 
@@ -138,7 +166,7 @@ $this.updateFilesInsertions = function (repositoryId, commitIdByHash, commitsLis
         query.insert(chunk);
         return dbController.rawQuery("insert or ignore" + query.toString().substring(6));
     });
-    dbController.parallel(batch, function (success, results, error) {
+    dbController.combined(batch, function (success, results, error) {
         return next(success, results, error);
     });
 };
@@ -214,7 +242,7 @@ $this.updateFilesDeletions = function (repositoryId, commitIdByHash, commitsList
             query.update(value);
             updateQueries.push(query);
         });
-        dbController.parallel(updateQueries, function (success, results, error) {
+        dbController.combined(updateQueries, function (success, results, error) {
             return next(success, results, error);
         });
     });
@@ -222,14 +250,14 @@ $this.updateFilesDeletions = function (repositoryId, commitIdByHash, commitsList
 
 $this.updateChanges = function (repositoryId, commitIdByHash, commitsList, next) {
     // List file changes paths found
-    var commitsChangesPaths = [];
+    var commitsChangesPaths = {};
     core.for(commitsList, function (idx, commit) {
         core.for(commit.changes, function (idx, change) {
-            commitsChangesPaths.push(change.path);
+            commitsChangesPaths[change.path] = true;
         });
     });
     // Batch file read
-    var batch = dbController.batch(commitsChangesPaths, function (chunk) {
+    var batch = dbController.batch(core.keys(commitsChangesPaths), function (chunk) {
         var query = dbController.query("git_file");
         query.leftJoin("git_commit as add_git_commit", "git_file.add_git_commit_id", "add_git_commit.id");
         query.leftJoin("git_commit as del_git_commit", "git_file.del_git_commit_id", "del_git_commit.id");
@@ -261,9 +289,10 @@ $this.updateChanges = function (repositoryId, commitIdByHash, commitsList, next)
             core.for(commit.changes, function (idx, change) {
                 var filesList = filesByPath[change.path];
                 core.for(filesList, function (idx, file) {
-                    if (file.add_git_commit_time >= commitTime) {
-                        if (file.del_git_commit_time == null || file.del_git_commit_time <= commitTime) {
+                    if (file.add_git_commit_time <= commitTime) {
+                        if (file.del_git_commit_time == null || file.del_git_commit_time >= commitTime) {
                             insertedChanges.push({
+                                "git_repo_id": repositoryId,
                                 "git_file_id": file.git_file_id,
                                 "git_commit_id": commitId,
                                 "additions": change.additions,
@@ -276,13 +305,12 @@ $this.updateChanges = function (repositoryId, commitIdByHash, commitsList, next)
             });
         });
         // Batch changes insertions
-        console.log("InsertChanges", insertedChanges.length, commitsChangesPaths.length, results.length);
         var batch = dbController.batch(insertedChanges, function (chunk) {
             var query = dbController.query("git_change");
             query.insert(chunk);
             return dbController.rawQuery("insert or ignore" + query.toString().substring(6));
         });
-        dbController.parallel(batch, function (success, results, error) {
+        dbController.combined(batch, function (success, results, error) {
             return next(success, results, error);
         });
     });
@@ -292,28 +320,36 @@ $this.updateAll = function (repositoryUrl, commitsList, next) {
 
     $this.updateRepository(repositoryUrl, function (success, repositoryId, error) {
 
-        console.log("repositoryId", repositoryId);
+        console.log("$this.updateRepository", success, repositoryId, error);
 
         $this.updateAuthors(commitsList, function (success, authorIdByName, error) {
 
-            console.log("authorIdByName", authorIdByName);
+            console.log("$this.updateAuthors", success, core.count(authorIdByName), error);
 
             $this.updateCommits(repositoryId, authorIdByName, commitsList, function (success, commitIdByHash, error) {
 
-                //console.log("commitIdByHash", commitIdByHash);
+                console.log("$this.updateCommits", success, core.count(commitIdByHash), error);
 
-                $this.updateFilesInsertions(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
+                $this.updateTree(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
 
-                    console.log("$this.updateFilesInsertions", success, results, error);
+                    console.log("$this.updateTree", success, results, error);
 
-                    $this.updateFilesDeletions(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
+                    $this.updateFilesInsertions(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
 
-                        console.log("$this.updateFilesDeletions", success, results, error);
+                        console.log("$this.updateFilesInsertions", success, results, error);
 
-                        $this.updateChanges(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
-                            console.log("$this.updateChanges", success, results, error);
+                        $this.updateFilesDeletions(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
 
-                            return next(success, results, error);
+                            console.log("$this.updateFilesDeletions", success, results, error);
+
+                            $this.updateChanges(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
+
+                                console.log("$this.updateChanges", success, results, error);
+
+                                return next(success, results, error);
+
+                            });
+
                         });
 
                     });

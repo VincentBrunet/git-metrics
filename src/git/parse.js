@@ -24,20 +24,20 @@ $this.parseFilePaths = function (filePath) {
     return [filePath];
 };
 
-$this.parseLog = function (commitsData, logs) {
+$this.parseLogList = function (commitsLines, logs) {
     // Take raw logs and split into commits and commit lines
-    var allLines = logs.split(/\r?\n/);
-    var commitsLines = [];
+    var commitsData = [];
+    var commitsBlocks = [];
     var currentCommitLines = null;
     // For every log line
-    for (var i = 0; i < allLines.length; i++) {
+    for (var i = 0; i < commitsLines.length; i++) {
         // Current log line
-        var currentLine = allLines[i];
+        var currentLine = commitsLines[i];
         // If we have a new commit
         if (currentLine.startsWith("commit ")) {
             // Save and reset current commit
             if (currentCommitLines) {
-                commitsLines.push(currentCommitLines);
+                commitsBlocks.push(currentCommitLines);
             }
             currentCommitLines = [];
         }
@@ -46,16 +46,21 @@ $this.parseLog = function (commitsData, logs) {
             currentCommitLines.push(currentLine);
         }
     }
+    // Add final block
+    if (currentCommitLines && currentCommitLines.length > 0) {
+        commitsBlocks.push(currentCommitLines);
+    }
     // For every commits
-    for (var i = 0; i < commitsLines.length; i++) {
+    for (var i = 0; i < commitsBlocks.length; i++) {
         // Get lines of commit
-        var lines = commitsLines[i];
+        var lines = commitsBlocks[i];
         // Commit must be at least 3 lines
         if (lines.length < 3) {
             console.log("Invalid commit", lines.length, lines);
         }
         // Commit datas
         var commitData = {
+            parents: [],
             hash: null,
             author: null,
             date: null,
@@ -77,6 +82,11 @@ $this.parseLog = function (commitsData, logs) {
             if (line.startsWith("commit ")) {
                 var commitLine = line.split(" ");
                 commitData.hash = commitLine[1].trim();
+                core.for(commitLine, function (idx, part) {
+                    if (idx > 1) {
+                        commitData.parents.push(part);
+                    }
+                });
                 continue;
             }
             // Author line
@@ -160,14 +170,7 @@ $this.parseLog = function (commitsData, logs) {
         // Save all commit data parsed
         commitsData.push(commitData);
     }
-};
-
-$this.parseLogList = function (commitsLogs) {
-    var commits = [];
-    core.for(commitsLogs, function (idx, commitsLog) {
-        $this.parseLog(commits, commitsLog);
-    });
-    return commits;
+    return commitsData;
 };
 
 module.exports = $this;

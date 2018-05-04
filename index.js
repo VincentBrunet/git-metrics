@@ -15,22 +15,23 @@ console.log("Reading history of repository", repositoryPath, "for", repositoryDa
 
 gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
 
-    console.log("Repo", repositoryUrl);
+    console.log("gitRepo.currentRepo", repositoryUrl);
 
-    gitLog.logsOfPreviousDays(repositoryPath, repositoryDays, function (success, commitsLogs, error) {
+    gitLog.logsOfPreviousDays(repositoryPath, repositoryDays, function (success, commitsLines, error) {
 
-        var commitsList = gitParse.parseLogList(commitsLogs);
+        var commitsList = gitParse.parseLogList(commitsLines);
 
-        console.log("Parsed", success, commitsList.length);
+        console.log("gitLog.logsOfPreviousDays", success, commitsList.length);
 
         dbPump.updateAll(repositoryUrl, commitsList, function (success, results, error) {
 
-            console.log("Uploaded", success, results, error);
+            console.log("dbPump.updateAll", success, results, error);
 
             var tables = [
                 "git_author",
                 "git_repo",
                 "git_commit",
+                "git_tree",
                 "git_file",
                 "git_rename",
                 "git_change",
@@ -43,12 +44,22 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
             });
             dbController.parallel(queries, function (success, results, error) {
 
-                console.log("Read", success);
-
                 core.for(results, function (key, result) {
-                    console.log("Result", key, result.datas[0]["count(*)"]);
+                    console.log("Table Content:", key, result.datas[0]["count(*)"]);
                 });
 
+            });
+
+            var query = dbController.query("git_file");
+            query.select("*");
+            query.execute(function (success, results, error) {
+                var deleteds = 0;
+                core.for(results, function (idx, git_file) {
+                    if (git_file.del_git_commit_id) {
+                        deleteds++;
+                    }
+                });
+                console.log("Files count:", results.length, "deleteds:", deleteds);
             });
 
         });

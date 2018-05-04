@@ -3,6 +3,17 @@ var _ = require("lodash");
 
 var $this = {};
 
+$this.count = function (collection) {
+    if (Array.isArray(collection)) {
+        return collection.length;
+    }
+    var c = 0;
+    $this.for(collection, function (key, value) {
+        c++;
+    });
+    return c;
+};
+
 $this.for = function (collection, elem, done) {
     if (Array.isArray(collection)) {
         for (var i = 0; i < collection.length; i++) {

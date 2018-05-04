@@ -24,6 +24,16 @@ exports.up = $sugar.migration(function ($mg, knex) {
         // No commit with same hash
         $mg.addUnique(table, "hash");
     });
+    $mg.createTable("git_tree", function (table) {
+        $mg.addColumn(table, "git_repo_id", "integer");
+        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
+        $mg.addColumn(table, "git_commit_id", "integer");
+        $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
+        $mg.addColumn(table, "parent_git_commit_id", "integer");
+        $mg.addForeignLink(table, "parent_git_commit_id", "git_commit.id");
+        // No connection with same commit and parent
+        $mg.addUnique(table, ["git_commit_id", "parent_git_commit_id"]);
+    });
     $mg.createTable("git_file", function (table) {
         $mg.addColumn(table, "git_repo_id", "integer");
         $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
@@ -36,6 +46,8 @@ exports.up = $sugar.migration(function ($mg, knex) {
         $mg.addUnique(table, ["add_git_commit_id", "path"]);
     });
     $mg.createTable("git_rename", function (table) {
+        $mg.addColumn(table, "git_repo_id", "integer");
+        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addColumn(table, "git_commit_id", "integer");
         $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
         $mg.addColumn(table, "before_git_file_id", "integer");
@@ -46,6 +58,8 @@ exports.up = $sugar.migration(function ($mg, knex) {
         $mg.addUnique(table, ["git_commit_id", "before_git_file_id"]);
     });
     $mg.createTable("git_change", function (table) {
+        $mg.addColumn(table, "git_repo_id", "integer");
+        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addColumn(table, "git_commit_id", "integer");
         $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
         $mg.addColumn(table, "git_file_id", "integer");
@@ -63,6 +77,7 @@ exports.down = $sugar.migration(function ($mg) {
   $mg.dropTable("git_author");
   $mg.dropTable("git_repo");
   $mg.dropTable("git_commit");
+  $mg.dropTable("git_tree");
   $mg.dropTable("git_file");
   $mg.dropTable("git_rename");
   $mg.dropTable("git_change");
