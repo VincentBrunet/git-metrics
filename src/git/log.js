@@ -17,7 +17,7 @@ $this.logOnPeriod = function (repository, maxDate, minDate, next) {
         cwd: repository,
         maxBuffer: 1024 * 1024 * 1024, // 1 Gb max output
     };
-    console.log("Reading commits from", maxDate.format("LL"), "to", minDate.format("LL"));
+    console.log("Reading commits\t from:", maxDate.format("LL"), "\t to:", minDate.format("LL"));
     child_process.exec(command, options, function callback(error, stdout, stderr) {
         if (error == null) {
             return next(true, stdout, null);

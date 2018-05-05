@@ -53,7 +53,7 @@ $local._query = function (tableName) {
     self.execute = function (done) {
         self._internal.then(function (datas) {
             var rows = datas;
-            if (!Array.isArray(rows)) {
+            if (!core.isArray(rows)) {
                 rows = core.values(datas);
             }
             try {
@@ -89,49 +89,55 @@ $this.rawQuery = function (str) {
 };
 
 $this.parallel = function (queries, done) {
+    var _max = core.count(queries);
+    console.log("Starting", _max, "db queries");
     var asArray = core.isArray(queries);
+    var _total = 0;
+    var _success = true;
     var _results = {};
     if (asArray) {
         _results = [];
     }
-    var _success = true;
-    var _todo = 0;
     var _error = undefined;
-    var _scheduled = 0;
-    core.for(queries, function (key, query) {
-        _scheduled += 1;
-        _todo += 1;
-        var result = {
-            success: false,
-        };
-        if (asArray) {
-            _results.push(result);
-        }
-        else {
-            _results[key] = result;
-        }
-        query.execute(function (success, datas, error) {
-            result.success = success;
-            result.datas = datas;
-            result.error = error;
-            if (!success) {
-                if (!_error) {
-                    _error = error;
+    var queriesChunks = core.chunks(queries, 100);
+    core.seq(queriesChunks, function (idx, queriesChunk, next) {
+        var _todo = 0;
+        core.for(queriesChunk, function (key, query) {
+            _total += 1;
+            _todo += 1;
+            var result = {
+                success: false,
+            };
+            if (asArray) {
+                _results.push(result);
+            }
+            else {
+                _results[key] = result;
+            }
+            query.execute(function (success, datas, error) {
+                result.success = success;
+                result.datas = datas;
+                result.error = error;
+                if (!success) {
+                    if (!_error) {
+                        _error = error;
+                    }
+                    _success = false;
                 }
-                _success = false;
-            }
-            _todo -= 1;
-            if (_todo <= 0) {
-                return done(_success, _results, _error);
-            }
+                _todo -= 1;
+                if (_todo <= 0) {
+                    console.log("Done with", _total, "queries", "out of", _max);
+                    next();
+                }
+            });
         });
-    });
-    if (_scheduled <= 0) {
+    }, function () {
         return done(_success, _results, _error);
-    }
+    });
 };
 
 $this.combined = function (queries, next) {
+    var isArray = core.isArray(queries);
     $this.parallel(queries, function (success, results, error) {
         if (!success) {
             return next(false, null, error);
@@ -140,7 +146,7 @@ $this.combined = function (queries, next) {
         core.for(results, function (idx, result) {
             core.for(result.datas, function (idx, data) {
                 finalResults.push(data);
-            })
+            });
         });
         return next(success, finalResults, error);
     });
@@ -152,6 +158,7 @@ $this.batch = function (datas, queryGenerator, done) {
     core.for(chunks, function (idx, chunk) {
         queries.push(queryGenerator(chunk));
     });
+    console.log("Batched", core.count(datas), "datasets, as", queries.length, "db queries");
     return queries;
 };
 

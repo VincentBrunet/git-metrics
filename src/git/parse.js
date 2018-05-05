@@ -6,6 +6,42 @@ var core = require("../core");
 
 var $this = {};
 
+$this.isHash = function (string) {
+    if (string.length < 2) {
+        return false;
+    }
+    var allowedChars = {
+        "a": true,
+        "b": true,
+        "c": true,
+        "d": true,
+        "e": true,
+        "f": true,
+        "A": true,
+        "B": true,
+        "C": true,
+        "D": true,
+        "E": true,
+        "F": true,
+        "0": true,
+        "1": true,
+        "2": true,
+        "3": true,
+        "4": true,
+        "5": true,
+        "6": true,
+        "7": true,
+        "8": true,
+        "9": true,
+    };
+    for (var i = 0; i > string.length; i++) {
+        if (!allowedChars[string[i]]) {
+            return false;
+        }
+    }
+    return true;
+};
+
 $this.parseFilePaths = function (filePath) {
     // Check if path contains renaming pattern
     var renameRegex = /({.* => .*})/gi;
@@ -84,7 +120,9 @@ $this.parseLogList = function (commitsLines, logs) {
                 commitData.hash = commitLine[1].trim();
                 core.for(commitLine, function (idx, part) {
                     if (idx > 1) {
-                        commitData.parents.push(part);
+                        if ($this.isHash(part)) {
+                            commitData.parents.push(part);
+                        }
                     }
                 });
                 continue;

@@ -88,7 +88,7 @@ $this.updateCommits = function (repositoryId, authorIdByName, commitsList, next)
         query.insert(chunk);
         return dbController.rawQuery("insert or ignore" + query.toString().substring(6));
     });
-    dbController.parallel(batch, function (success, results, error) {
+    dbController.combined(batch, function (success, results, error) {
         // Batch commit reading
         var batch = dbController.batch(commitsHashes, function (chunk) {
             var query = dbController.query("git_commit");

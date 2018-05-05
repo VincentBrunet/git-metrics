@@ -18,6 +18,7 @@ exports.up = $sugar.migration(function ($mg, knex) {
         $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addColumn(table, "git_author_id", "integer");
         $mg.addForeignLink(table, "git_author_id", "git_author.id");
+        $mg.addColumn(table, "parents", "integer");
         $mg.addColumn(table, "hash", "string");
         $mg.addColumn(table, "comment", "string");
         $mg.addColumn(table, "time", "timestamp");

@@ -3,8 +3,10 @@ var _ = require("lodash");
 
 var $this = {};
 
+$this.isArray = _.isArray;
+
 $this.count = function (collection) {
-    if (Array.isArray(collection)) {
+    if ($this.isArray(collection)) {
         return collection.length;
     }
     var c = 0;
@@ -15,7 +17,7 @@ $this.count = function (collection) {
 };
 
 $this.for = function (collection, elem, done) {
-    if (Array.isArray(collection)) {
+    if ($this.isArray(collection)) {
         for (var i = 0; i < collection.length; i++) {
             if (elem) {
                 var value = collection[i];
@@ -37,6 +39,34 @@ $this.for = function (collection, elem, done) {
     }
 };
 
+$this.seq = function (iterable, callback, done) {
+    var params = [];
+    $this.for(iterable, function (key, value) {
+        params.push([key, value]);
+    });
+    function doRecurse(idx, depth) {
+        if (idx >= params.length) {
+            if (done) {
+                done();
+            }
+            return;
+        }
+        var param = params[idx];
+        var next = function () {
+            if (depth > 1000) {
+                setTimeout(function () {
+                    doRecurse(idx + 1, 0);
+                }, 0);
+            }
+            else {
+                doRecurse(idx + 1, depth + 1);
+            }
+        };
+        callback(param[0], param[1], next);
+    }
+    doRecurse(0, 0);
+};
+
 $this.repeat = function (times, elem, done) {
     for (var i = 0; i < times; i++) {
         if (elem) {
@@ -48,19 +78,31 @@ $this.repeat = function (times, elem, done) {
     }
 };
 
-$this.chunks = function (list, chunkSize) {
+$this.chunks = function (iterable, chunkSize) {
+    var isArray = $this.isArray(iterable);
     var chunks = [];
-    var currentChunk = [];
+    var currentChunk = {};
+    if (isArray) {
+        currentChunk = [];
+    }
     var currentNb = 0;
-    $this.for(list, function (idx, elem) {
+    $this.for(iterable, function (key, elem) {
         currentNb++;
-        currentChunk.push(elem);
+        if (isArray) {
+            currentChunk.push(elem);
+        }
+        else {
+            currentChunk[key] = elem;
+        }
         if (currentNb % chunkSize == 0) {
             chunks.push(currentChunk);
-            currentChunk = [];
+            currentChunk = {};
+            if (isArray) {
+                currentChunk = [];
+            }
         }
     });
-    if (currentChunk.length > 0) {
+    if (currentNb % chunkSize != 0) {
         chunks.push(currentChunk);
     }
     return chunks;
@@ -69,7 +111,5 @@ $this.chunks = function (list, chunkSize) {
 $this.functions = _.functions;
 $this.values = _.values;
 $this.keys = _.keys;
-
-$this.isArray = _.isArray;
 
 module.exports = $this;

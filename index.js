@@ -43,11 +43,9 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
                 queries[tableName] = query;
             });
             dbController.parallel(queries, function (success, results, error) {
-
                 core.for(results, function (key, result) {
                     console.log("Table Content:", key, result.datas[0]["count(*)"]);
                 });
-
             });
 
             var query = dbController.query("git_file");
