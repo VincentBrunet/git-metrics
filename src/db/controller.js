@@ -152,7 +152,7 @@ $this.combined = function (queries, next) {
     });
 };
 
-$this.batch = function (datas, queryGenerator, done) {
+$this.batch = function (datas, queryGenerator) {
     var chunks = core.chunks(datas, 100);
     var queries = [];
     core.for(chunks, function (idx, chunk) {
@@ -160,6 +160,45 @@ $this.batch = function (datas, queryGenerator, done) {
     });
     console.log("Batched", core.count(datas), "datasets, as", queries.length, "db queries");
     return queries;
+};
+
+$this.inserts = function (tableName, tableRows, insertCondition, next) {
+    // Batch changes insertions
+    var batch = $this.batch(tableRows, function (chunk) {
+        var query = $this.query(tableName);
+        query.insert(chunk);
+        if (insertCondition == "ignore") {
+            insertCondition = "insert or ignore";
+        }
+        if (insertCondition == "replace") {
+            insertCondition = "insert or replace";
+        }
+        if (insertCondition) {
+            return $this.rawQuery(insertCondition + query.toString().substring(6));
+        }
+        return query;
+    });
+    // Batch insertion queries
+    $this.combined(batch, function (success, results, error) {
+        // Done
+        return next(success, results, error);
+    });
+};
+
+$this.updates = function (tableName, objectsById, next) {
+    // Create update queries
+    var updateQueries = [];
+    core.for(objectsById, function (key, value) {
+        var query = dbController.query(tableName);
+        query.where("id", key);
+        query.update(value);
+        updateQueries.push(query);
+    });
+    // Batch update queries
+    dbController.combined(updateQueries, function (success, results, error) {
+        // Done
+        return next(success, results, error);
+    });
 };
 
 module.exports = $this;

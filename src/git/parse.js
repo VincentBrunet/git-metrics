@@ -6,8 +6,8 @@ var core = require("../core");
 
 var $this = {};
 
-$this.isHash = function (string) {
-    if (string.length < 2) {
+$this.isCommitHash = function (string) {
+    if (string.length != 40) {
         return false;
     }
     var allowedChars = {
@@ -120,7 +120,7 @@ $this.parseLogList = function (commitsLines, logs) {
                 commitData.hash = commitLine[1].trim();
                 core.for(commitLine, function (idx, part) {
                     if (idx > 1) {
-                        if ($this.isHash(part)) {
+                        if ($this.isCommitHash(part)) {
                             commitData.parents.push(part);
                         }
                     }

@@ -48,6 +48,15 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
                 });
             });
 
+            var query = dbController.query("git_commit");
+            query.select("*");
+            query.execute(function (success, results, error) {
+                core.for(results, function (idx, git_commit) {
+                    console.log("Commit", git_commit.hash, git_commit.parents);
+                });
+                console.log("Commit count:", results.length);
+            });
+
             var query = dbController.query("git_file");
             query.select("*");
             query.execute(function (success, results, error) {

@@ -2,143 +2,134 @@
 var core = require("../core");
 
 var dbController = require("./controller");
+var dbLookups = require("./lookups");
 
 var $this = {};
 
-$this.updateRepository = function (repositoryUrl, next) {
-    // Insert repository if not yet known
-    var query = dbController.query("git_repo");
-    query.insert({
+$this.pumpRepository = function (repositoryUrl, next) {
+    // Repository to be inserted
+    var repository = {
         "url": repositoryUrl,
-    });
-    var rawQuery = dbController.rawQuery("insert or ignore" + query.toString().substring(6));
-    rawQuery.execute(function (success, results, error) {
+    };
+    // Insert repository if not already there
+    dbController.inserts("git_repo", [repository], "insert or ignore", function (success, results, error) {
+        // Repository could not update
         if (!success) {
             console.log("Repository update error", success, results, error);
         }
         // Fetch existing repository infos
-        var query = dbController.query("git_repo");
-        query.where("url", repositoryUrl);
-        query.select(["id", "url"]);
-        query.execute(function (success, results, error) {
-            return next(success, results[0].id, error);
+        dbLookups.lookupRepositoryByUrl(repositoryUrl, function (success, repository, error) {
+            // Return repository id
+            return next(success, repository, error);
         });
-    });
+    });;
 };
 
 $this.updateAuthors = function (commitsList, next) {
-    // List all author found for insertion
-    var commitsAuthors = {};
+    // Index all author names
+    var authors = {};
     core.for(commitsList, function (idx, commit) {
-        commitsAuthors[commit.author] = true;
+        authors[commit.author] = true;
     });
-    var commitsAuthorsInserted = [];
-    core.for(commitsAuthors, function (key, value) {
-        commitsAuthorsInserted.push({
+    // List all authors to be inserted
+    var authorsInserted = [];
+    core.for(authors, function (key, value) {
+        authorsInserted.push({
             name: key,
         });
     });
-    // Batch author insertion
-    var batch = dbController.batch(commitsAuthorsInserted, function (chunk) {
-        var query = dbController.query("git_author");
-        query.insert(chunk);
-        return dbController.rawQuery("insert or ignore" + query.toString().substring(6));
-    });
-    dbController.combined(batch, function (success, results, error) {
-        // Batch author reading
-        var batch = dbController.batch(core.keys(commitsAuthors), function (chunk) {
-            var query = dbController.query("git_author");
-            query.whereIn("name", chunk);
-            query.select(["id", "name"]);
-            return query;
-        });
-        dbController.combined(batch, function (success, results, error) {
-            // Index author by name
-            var authorIdByName = {};
-            core.for(results, function (key, value) {
-                authorIdByName[value.name] = value.id;
-            });
-            return next(success, authorIdByName, error);
+    // Insert all authors, or ignore if already there
+    dbController.inserts("git_author", authorsInserted, "insert or ignore", function (success, results, error) {
+        // Get all authors with found names
+        dbLookups.lookupAuthorsByNames(core.keys(authors), function (success, authorsByName, error) {
+            // Return authors by name
+            return next(success, authorsByName, error);
         });
     });
 };
 
-$this.updateCommits = function (repositoryId, authorIdByName, commitsList, next) {
-    // List all commits found for insertion
+$this.updateCommits = function (repository, authorsByName, commitsList, next) {
+    // List all commits hash
     var commitsHashes = [];
-    var commitsInserted = [];
     core.for(commitsList, function (idx, commit) {
         commitsHashes.push(commit.hash);
-        if (!authorIdByName[commit.author]) {
+    }};
+    // List all commits ready for insertion
+    var commitsInserted = [];
+    core.for(commitsList, function (idx, commit) {
+        // Lookup commit author
+        var author = authorsByName[commit.author];
+        // Could not find author for this commit
+        if (!author) {
             console.log("Could not find author", commit.author);
+            return; // Continue loop
         }
-        else {
-            commitsInserted.push({
-                "git_repo_id": repositoryId,
-                "git_author_id": authorIdByName[commit.author],
-                "hash": commit.hash,
-                "comment": commit.comment.join("\n"),
-                "time": commit.date.valueOf(),
-            });
-        }
-    });
-    // Batch commit insertion
-    var batch = dbController.batch(commitsInserted, function (chunk) {
-        var query = dbController.query("git_commit");
-        query.insert(chunk);
-        return dbController.rawQuery("insert or ignore" + query.toString().substring(6));
-    });
-    dbController.combined(batch, function (success, results, error) {
-        // Batch commit reading
-        var batch = dbController.batch(commitsHashes, function (chunk) {
-            var query = dbController.query("git_commit");
-            query.where("git_repo_id", repositoryId);
-            query.whereIn("hash", chunk);
-            query.select(["id", "hash"]);
-            return query;
+        // Insert commit data
+        commitsInserted.push({
+            "git_repo_id": repository.id,
+            "git_author_id": author.id,
+            "parents": commit.parents.length,
+            "hash": commit.hash,
+            "comment": commit.comment.join("\n"),
+            "time": commit.date.valueOf(),
         });
-        dbController.combined(batch, function (success, results, error) {
-            // Index commit by hash
-            var commitIdByHash = {};
-            core.for(results, function (key, value) {
-                commitIdByHash[value.hash] = value.id;
-            });
-            return next(success, commitIdByHash, error);
+    });
+    // Insert all commits found (only if not already inserted)
+    dbController.inserts("git_commit", commitsInserted, "insert or ignore", function (success, results, error) {
+        // Lookup all commits matching found hashes
+        dbLookups.lookupCommitsByHash(repository, commitsHashes, function (success, commitsByHash, error) {
+            // Return commits by hash
+            return next(success, commitsByHash, error);
         });
     });
 };
 
-$this.updateTree = function (repositoryId, commitIdByHash, commitsList, next) {
+$this.updateTree = function (repository, commitsByHash, commitsList, next) {
     // List all commit parenting relations
-    var commitsTreeInserted = [];
+    var treesInserted = [];
     core.for(commitsList, function (idx, commit) {
-        var commitId = commitIdByHash[commit.hash];
+        // Lookup child commit
+        var childCommit = commitsByHash[commit.hash];
+        // If we could not find child commit
+        if (!childCommit) {
+            console.log("Could not find child commit", commit.hash);
+            return; // Continue loop
+        }
+        // For every parent of this commit
         core.for(commit.parents, function (idx, parentHash) {
-            var parentId = commitIdByHash[parentHash];
-            if (parentId) {
-                commitsTreeInserted.push({
-                    "git_repo_id": repositoryId,
-                    "git_commit_id": commitId,
-                    "parent_git_commit_id": parentId,
-                });
+            // Lookup parent commit
+            var parentCommit = commitsByHash[parentHash];
+            // If we could not find parent commit
+            if (!parentCommit) {
+                console.log("Could not find parent commit", parentHash);
+                return; // Continue loop
             }
+            // Insert parenting relation
+            treesInserted.push({
+                "git_repo_id": repository.id,
+                "git_commit_id": childCommit.id,
+                "parent_git_commit_id": parentCommit.id,
+            });
         });
     });
-    // Batch file insertion
-    var batch = dbController.batch(commitsTreeInserted, function (chunk) {
-        var query = dbController.query("git_tree");
-        query.insert(chunk);
-        return dbController.rawQuery("insert or ignore" + query.toString().substring(6));
-    });
-    dbController.combined(batch, function (success, results, error) {
+    // Insert all found parenting relations
+    dbController.insert("git_tree", treesInserted, "insert or ignore", function (success, results, error) {
+        // Done
         return next(success, results, error);
     });
 };
 
-$this.updateFilesInsertions = function (repositoryId, commitIdByHash, commitsList, next) {
+$this.updateFilesInsertions = function (repository, commitsByHash, commitsList, next) {
     // List all files found for insertion
-    var commitsFilesInserted = [];
+    var filesInserted = [];
     core.for(commitsList, function (idx, commit) {
+        // Lookup parent commit
+        var parentCommit = commitsByHash[commit.hash];
+        if (!parentCommit) {
+            console.log("Could not find parent commit", commit.hash);
+            return; // Continue loop
+        }
+        // List all added path by this commit
         var addedPaths = [];
         core.for(commit.additions, function (idx, addition) {
             addedPaths.push(addition);
@@ -146,72 +137,48 @@ $this.updateFilesInsertions = function (repositoryId, commitIdByHash, commitsLis
         core.for(commit.renames, function (idx, rename) {
             addedPaths.push(rename.after);
         });
+        // Insert all added path
         core.for(addedPaths, function (idx, path) {
-            if (!commitIdByHash[commit.hash]) {
-                console.log("Cannot find hash", commit.hash);
-            }
-            else {
-                commitsFilesInserted.push({
-                    "git_repo_id": repositoryId,
-                    "add_git_commit_id": commitIdByHash[commit.hash],
-                    "del_git_commit_id": null,
-                    "path": path,
-                });
-            }
+            // Insert added path
+            filesInserted.push({
+                "git_repo_id": repository.id,
+                "add_git_commit_id": parentCommit.id,
+                "del_git_commit_id": null,
+                "path": path,
+            });
         });
     });
-    // Batch file insertion
-    var batch = dbController.batch(commitsFilesInserted, function (chunk) {
-        var query = dbController.query("git_file");
-        query.insert(chunk);
-        return dbController.rawQuery("insert or ignore" + query.toString().substring(6));
-    });
-    dbController.combined(batch, function (success, results, error) {
+    // Insert all found files
+    dbController.inserts("git_file", filesInserted, "insert or ignore", function (success, results, error) {
+        // Done
         return next(success, results, error);
     });
 };
 
-$this.updateFilesDeletions = function (repositoryId, commitIdByHash, commitsList, next) {
+$this.updateFilesDeletions = function (repository, commitsByHash, commitsList, next) {
     // List all files found for mark as deleted
-    var commitsFilesDeletions = [];
+    var commitsFilesDeletions = {};
     core.for(commitsList, function (idx, commit) {
         core.for(commit.deletions, function (idx, deletion) {
-            commitsFilesDeletions.push(deletion);
+            commitsFilesDeletions[deletion] = true;
         });
         core.for(commit.renames, function (idx, rename) {
-            commitsFilesDeletions.push(rename.before);
+            commitsFilesDeletions[rename.before] = true;
         });
     });
-    // Batch file reading
-    var batch = dbController.batch(commitsFilesDeletions, function (chunk) {
-        var query = dbController.query("git_file");
-        query.leftJoin("git_commit as add_git_commit", "git_file.add_git_commit_id", "add_git_commit.id");
-        query.leftJoin("git_commit as del_git_commit", "git_file.del_git_commit_id", "del_git_commit.id");
-        query.where("git_file.git_repo_id", repositoryId);
-        query.whereIn("path", chunk);
-        query.selectAs({
-            "git_file.id": "git_file_id",
-            "git_file.path": "git_file_path",
-            "add_git_commit.id": "add_git_commit_id",
-            "add_git_commit.time": "add_git_commit_time",
-            "del_git_commit.id": "del_git_commit_id",
-            "del_git_commit.time": "del_git_commit_time",
-        });
-        return query;
-    });
-    dbController.combined(batch, function (success, results, error) {
-        // Index files by path
-        var filesByPath = {};
-        core.for(results, function (idx, result) {
-            var filesList = filesByPath[result.git_file_path] || [];
-            filesList.push(result);
-            filesByPath[result.git_file_path] = filesList;
-        });
+    // Lookup all files deleteds
+    dbLookups.lookupFilesByPaths(repository, core.keys(commitsFilesDeletions), function (success, filesByPath, error) {
         // List file updates to be applied
         var filesUpdatedById = {};
         core.for(commitsList, function (idx, commit) {
-            var commitId = commitIdByHash[commit.hash];
-            var commitTime = commit.date.valueOf();
+            // Lookup parent commit
+            var parentCommit = commitsByHash[commit.hash];
+            // If parent commit not found
+            if (!parentCommit) {
+                console.log("Could not find parent commit", commit.hash);
+                return; // Continue loop
+            }
+            // List all paths to be marked as deleted
             var commitDeletions = [];
             core.for(commit.deletions, function (idx, deletion) {
                 commitDeletions.push(deletion);
@@ -219,14 +186,18 @@ $this.updateFilesDeletions = function (repositoryId, commitIdByHash, commitsList
             core.for(commit.renames, function (idx, rename) {
                 commitDeletions.push(rename.before);
             });
+            // For every deleted paths, lookup their associated files
             core.for(commitDeletions, function (idx, deletion) {
+                // Lookup files from path
                 var filesList = filesByPath[deletion];
                 core.for(filesList, function (idx, file) {
-                    if (file.add_git_commit_time <= commitTime) {
-                        if (file.del_git_commit_time == null || file.del_git_commit_time >= commitTime) {
-                            if (file.del_git_commit_id != commitId) {
+                    // If path deletion belongs to this file (not already deleted and stuff)
+                    if (file.add_git_commit_time <= parentCommit.time) {
+                        if (file.del_git_commit_time == null || file.del_git_commit_time >= parentCommit.time) {
+                            if (file.del_git_commit_id != parentCommit.id) {
+                                // Update file record
                                 filesUpdatedById[file.git_file_id] = {
-                                    "del_git_commit_id": commitId,
+                                    "del_git_commit_id": parentCommit.id,
                                 };
                             }
                         }
@@ -234,21 +205,80 @@ $this.updateFilesDeletions = function (repositoryId, commitIdByHash, commitsList
                 });
             });
         });
-        // Create update queries from files to change
-        var updateQueries = [];
-        core.for(filesUpdatedById, function (key, value) {
-            var query = dbController.query("git_file");
-            query.where("id", key);
-            query.update(value);
-            updateQueries.push(query);
-        });
-        dbController.combined(updateQueries, function (success, results, error) {
+        // Update files using update dictionary
+        dbController.updates("git_file", filesUpdatedById, function (success, results, error) {
+            // Done
             return next(success, results, error);
         });
     });
 };
 
-$this.updateChanges = function (repositoryId, commitIdByHash, commitsList, next) {
+$this.updateFileRenames = function (repository, commitsByHash, commitsList, next) {
+    // List renamed commits files paths
+    var filesRenamesPaths = {};
+    core.for(commitsList, function (idx, commit) {
+        core.for(commit.renames, function (idx, rename) {
+            filesRenamesPaths[rename.before] = true;
+            filesRenamesPaths[rename.after] = true;
+        });
+    });
+    // Lookup all files renamed
+    dbLookups.lookupFilesByPaths(repository, core.keys(filesRenamesPaths), function (success, filesByPath, error) {
+
+        var renamesInserted = [];
+
+        core.for(commitsList, function (idx, commit) {
+            // Lookup parent commit
+            var parentCommit = commitsByHash[commit.hash];
+            if (!parentCommit) {
+                console.log("Could not find parent commit", commit.hash);
+                return; // Continue looping
+            }
+
+            core.for(commit.renames, function (idx, rename) {
+
+                var fileBefore = undefined;
+                var fileAfter = undefined;
+
+                var filesBefore = filesByPath[rename.before];
+                core.for(filesBefore, function (idx, file) {
+                    if (file.del_git_commit_id == parentCommit.id) {
+                        fileBefore = file;
+                    }
+                });
+                var filesAfter = filesByPath[rename.after];
+                core.for(filesAfter, function (idx, file) {
+                    if (file.add_git_commit_id == parentCommit.id) {
+                        fileAfter = file;
+                    }
+                });
+
+                if (!fileBefore) {
+                    console.log("Could not find file before rename", rename.before);
+                    return; // Continue loop
+                }
+                if (!fileAfter) {
+                    console.log("Could not find file after rename", rename.after);
+                    return; // Continue loop
+                }
+
+                renamesInserted.push({
+                    "git_repo_id": repository.id,
+                    "git_commit_id": parentCommit.id,
+                    "before_git_file_id": fileBefore.id,
+                    "after_git_file_id": fileAfter.id,
+                });
+            });
+        });
+
+        dbController.inserts("git_rename", renamesInserted, "insert or ignore", function (success, results, error) {
+
+            return next(success, results, error);
+        });
+    });
+};
+
+$this.updateChanges = function (repository, commitsByHash, commitsList, next) {
     // List file changes paths found
     var commitsChangesPaths = {};
     core.for(commitsList, function (idx, commit) {
@@ -256,35 +286,12 @@ $this.updateChanges = function (repositoryId, commitIdByHash, commitsList, next)
             commitsChangesPaths[change.path] = true;
         });
     });
-    // Batch file read
-    var batch = dbController.batch(core.keys(commitsChangesPaths), function (chunk) {
-        var query = dbController.query("git_file");
-        query.leftJoin("git_commit as add_git_commit", "git_file.add_git_commit_id", "add_git_commit.id");
-        query.leftJoin("git_commit as del_git_commit", "git_file.del_git_commit_id", "del_git_commit.id");
-        query.where("git_file.git_repo_id", repositoryId);
-        query.whereIn("path", chunk);
-        query.selectAs({
-            "git_file.id": "git_file_id",
-            "git_file.path": "git_file_path",
-            "add_git_commit.id": "add_git_commit_id",
-            "add_git_commit.time": "add_git_commit_time",
-            "del_git_commit.id": "del_git_commit_id",
-            "del_git_commit.time": "del_git_commit_time",
-        });
-        return query;
-    });
-    dbController.combined(batch, function (success, results, error) {
-        // Index files by path
-        var filesByPath = {};
-        core.for(results, function (idx, result) {
-            var filesList = filesByPath[result.git_file_path] || [];
-            filesList.push(result);
-            filesByPath[result.git_file_path] = filesList;
-        });
+    // Lookup all files changed
+    dbLookups.lookupFilesByPaths(repository, core.keys(commitsChangesPaths), function (success, filesByPath, error) {
         // List changes to be applied to different paths
         var insertedChanges = [];
         core.for(commitsList, function (idx, commit) {
-            var commitId = commitIdByHash[commit.hash];
+            var commitId = commitsByHash[commit.hash];
             var commitTime = commit.date.valueOf();
             core.for(commit.changes, function (idx, change) {
                 var filesList = filesByPath[change.path];
@@ -292,7 +299,7 @@ $this.updateChanges = function (repositoryId, commitIdByHash, commitsList, next)
                     if (file.add_git_commit_time <= commitTime) {
                         if (file.del_git_commit_time == null || file.del_git_commit_time >= commitTime) {
                             insertedChanges.push({
-                                "git_repo_id": repositoryId,
+                                "git_repo_id": repository,
                                 "git_file_id": file.git_file_id,
                                 "git_commit_id": commitId,
                                 "additions": change.additions,
@@ -304,13 +311,8 @@ $this.updateChanges = function (repositoryId, commitIdByHash, commitsList, next)
                 });
             });
         });
-        // Batch changes insertions
-        var batch = dbController.batch(insertedChanges, function (chunk) {
-            var query = dbController.query("git_change");
-            query.insert(chunk);
-            return dbController.rawQuery("insert or ignore" + query.toString().substring(6));
-        });
-        dbController.combined(batch, function (success, results, error) {
+        // Do insert all changes (ignore already inserted ones)
+        dbController.inserts("git_change", insertedChanges, "insert or ignore", function (success, results, error) {
             return next(success, results, error);
         });
     });
@@ -318,50 +320,50 @@ $this.updateChanges = function (repositoryId, commitIdByHash, commitsList, next)
 
 $this.updateAll = function (repositoryUrl, commitsList, next) {
 
-    $this.updateRepository(repositoryUrl, function (success, repositoryId, error) {
+    console.log("$this.updateAll", repositoryUrl, commitsList.length);
 
-        console.log("$this.updateRepository", success, repositoryId, error);
+    $this.pumpRepository(repositoryUrl, function (success, repository, error) {
 
-        $this.updateAuthors(commitsList, function (success, authorIdByName, error) {
+        console.log("$this.pumpRepository", success, repository, error);
 
-            console.log("$this.updateAuthors", success, core.count(authorIdByName), error);
+        $this.updateAuthors(commitsList, function (success, authorsByName, error) {
 
-            $this.updateCommits(repositoryId, authorIdByName, commitsList, function (success, commitIdByHash, error) {
+            console.log("$this.updateAuthors", success, core.count(authorsByName), error);
 
-                console.log("$this.updateCommits", success, core.count(commitIdByHash), error);
+            $this.updateCommits(repository, authorsByName, commitsList, function (success, commitsByHash, error) {
 
-                $this.updateTree(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
+                console.log("$this.updateCommits", success, core.count(commitsByHash), error);
+
+                $this.updateTree(repository, commitsByHash, commitsList, function (success, results, error) {
 
                     console.log("$this.updateTree", success, results, error);
 
-                    $this.updateFilesInsertions(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
+                    $this.updateFilesInsertions(repository, commitsByHash, commitsList, function (success, results, error) {
 
                         console.log("$this.updateFilesInsertions", success, results, error);
 
-                        $this.updateFilesDeletions(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
+                        $this.updateFilesDeletions(repository, commitsByHash, commitsList, function (success, results, error) {
 
                             console.log("$this.updateFilesDeletions", success, results, error);
 
-                            $this.updateChanges(repositoryId, commitIdByHash, commitsList, function (success, results, error) {
+                            $this.updateFilesRenames(repository, commitsByHash, commitsList, function (success, results, error) {
 
-                                console.log("$this.updateChanges", success, results, error);
+                                console.log("$this.updateFilesRenames", success, results, error);
 
-                                return next(success, results, error);
+                                $this.updateChanges(repository, commitsByHash, commitsList, function (success, results, error) {
 
+                                    console.log("$this.updateChanges", success, results, error);
+
+                                    return next(success, results, error);
+
+                                });
                             });
-
                         });
-
                     });
-
                 });
-
             });
-
         });
-
     });
-
 };
 
 module.exports = $this;
