@@ -90,7 +90,7 @@ $this.rawQuery = function (str) {
 
 $this.parallel = function (queries, done) {
     var _max = core.count(queries);
-    console.log("Starting", _max, "db queries");
+    //console.log("Starting", _max, "db queries");
     var asArray = core.isArray(queries);
     var _total = 0;
     var _success = true;
@@ -126,7 +126,7 @@ $this.parallel = function (queries, done) {
                 }
                 _todo -= 1;
                 if (_todo <= 0) {
-                    console.log("Done with", _total, "queries", "out of", _max);
+                    //console.log("Done with", _total, "queries", "out of", _max);
                     next();
                 }
             });
@@ -158,7 +158,7 @@ $this.batch = function (datas, queryGenerator) {
     core.for(chunks, function (idx, chunk) {
         queries.push(queryGenerator(chunk));
     });
-    console.log("Batched", core.count(datas), "datasets, as", queries.length, "db queries");
+    //console.log("Batched", core.count(datas), "datasets, as", queries.length, "db queries");
     return queries;
 };
 
@@ -185,17 +185,17 @@ $this.inserts = function (tableName, tableRows, insertCondition, next) {
     });
 };
 
-$this.updates = function (tableName, objectsById, next) {
+$this.updateBy = function (tableName, indexColumn, indexedRows, next) {
     // Create update queries
     var updateQueries = [];
-    core.for(objectsById, function (key, value) {
-        var query = dbController.query(tableName);
-        query.where("id", key);
+    core.for(indexedRows, function (key, value) {
+        var query = $this.query(tableName);
+        query.where(indexColumn, key);
         query.update(value);
         updateQueries.push(query);
     });
     // Batch update queries
-    dbController.combined(updateQueries, function (success, results, error) {
+    $this.combined(updateQueries, function (success, results, error) {
         // Done
         return next(success, results, error);
     });

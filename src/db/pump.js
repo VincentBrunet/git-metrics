@@ -53,7 +53,7 @@ $this.updateCommits = function (repository, authorsByName, commitsList, next) {
     var commitsHashes = [];
     core.for(commitsList, function (idx, commit) {
         commitsHashes.push(commit.hash);
-    }};
+    });
     // List all commits ready for insertion
     var commitsInserted = [];
     core.for(commitsList, function (idx, commit) {
@@ -77,7 +77,7 @@ $this.updateCommits = function (repository, authorsByName, commitsList, next) {
     // Insert all commits found (only if not already inserted)
     dbController.inserts("git_commit", commitsInserted, "insert or ignore", function (success, results, error) {
         // Lookup all commits matching found hashes
-        dbLookups.lookupCommitsByHash(repository, commitsHashes, function (success, commitsByHash, error) {
+        dbLookups.lookupCommitsByHash(repository.id, commitsHashes, function (success, commitsByHash, error) {
             // Return commits by hash
             return next(success, commitsByHash, error);
         });
@@ -113,7 +113,7 @@ $this.updateTree = function (repository, commitsByHash, commitsList, next) {
         });
     });
     // Insert all found parenting relations
-    dbController.insert("git_tree", treesInserted, "insert or ignore", function (success, results, error) {
+    dbController.inserts("git_tree", treesInserted, "insert or ignore", function (success, results, error) {
         // Done
         return next(success, results, error);
     });
@@ -167,7 +167,7 @@ $this.updateFilesDeletions = function (repository, commitsByHash, commitsList, n
         });
     });
     // Lookup all files deleteds
-    dbLookups.lookupFilesByPaths(repository, core.keys(commitsFilesDeletions), function (success, filesByPath, error) {
+    dbLookups.lookupFilesByPaths(repository.id, core.keys(commitsFilesDeletions), function (success, filesByPath, error) {
         // List file updates to be applied
         var filesUpdatedById = {};
         core.for(commitsList, function (idx, commit) {
@@ -206,14 +206,14 @@ $this.updateFilesDeletions = function (repository, commitsByHash, commitsList, n
             });
         });
         // Update files using update dictionary
-        dbController.updates("git_file", filesUpdatedById, function (success, results, error) {
+        dbController.updateBy("git_file", "id", filesUpdatedById, function (success, results, error) {
             // Done
             return next(success, results, error);
         });
     });
 };
 
-$this.updateFileRenames = function (repository, commitsByHash, commitsList, next) {
+$this.updateFilesRenames = function (repository, commitsByHash, commitsList, next) {
     // List renamed commits files paths
     var filesRenamesPaths = {};
     core.for(commitsList, function (idx, commit) {
@@ -223,10 +223,9 @@ $this.updateFileRenames = function (repository, commitsByHash, commitsList, next
         });
     });
     // Lookup all files renamed
-    dbLookups.lookupFilesByPaths(repository, core.keys(filesRenamesPaths), function (success, filesByPath, error) {
-
+    dbLookups.lookupFilesByPaths(repository.id, core.keys(filesRenamesPaths), function (success, filesByPath, error) {
+        // List all rename instances to be created
         var renamesInserted = [];
-
         core.for(commitsList, function (idx, commit) {
             // Lookup parent commit
             var parentCommit = commitsByHash[commit.hash];
@@ -234,34 +233,35 @@ $this.updateFileRenames = function (repository, commitsByHash, commitsList, next
                 console.log("Could not find parent commit", commit.hash);
                 return; // Continue looping
             }
-
+            // Loop over all renames of commit
             core.for(commit.renames, function (idx, rename) {
-
+                // Lookup file before rename
                 var fileBefore = undefined;
-                var fileAfter = undefined;
-
                 var filesBefore = filesByPath[rename.before];
                 core.for(filesBefore, function (idx, file) {
                     if (file.del_git_commit_id == parentCommit.id) {
                         fileBefore = file;
                     }
                 });
+                // If we could not find file before rename
+                if (!fileBefore) {
+                    console.log("Could not find file before rename", rename.before);
+                    return; // Continue loop
+                }
+                // Lookup file after rename
+                var fileAfter = undefined;
                 var filesAfter = filesByPath[rename.after];
                 core.for(filesAfter, function (idx, file) {
                     if (file.add_git_commit_id == parentCommit.id) {
                         fileAfter = file;
                     }
                 });
-
-                if (!fileBefore) {
-                    console.log("Could not find file before rename", rename.before);
-                    return; // Continue loop
-                }
+                // If we could not find file after rename
                 if (!fileAfter) {
                     console.log("Could not find file after rename", rename.after);
                     return; // Continue loop
                 }
-
+                // Insert rename instance when everything is found
                 renamesInserted.push({
                     "git_repo_id": repository.id,
                     "git_commit_id": parentCommit.id,
@@ -270,9 +270,9 @@ $this.updateFileRenames = function (repository, commitsByHash, commitsList, next
                 });
             });
         });
-
+        // Insert all rename previously found
         dbController.inserts("git_rename", renamesInserted, "insert or ignore", function (success, results, error) {
-
+            // Done
             return next(success, results, error);
         });
     });
@@ -287,21 +287,30 @@ $this.updateChanges = function (repository, commitsByHash, commitsList, next) {
         });
     });
     // Lookup all files changed
-    dbLookups.lookupFilesByPaths(repository, core.keys(commitsChangesPaths), function (success, filesByPath, error) {
+    dbLookups.lookupFilesByPaths(repository.id, core.keys(commitsChangesPaths), function (success, filesByPath, error) {
         // List changes to be applied to different paths
         var insertedChanges = [];
         core.for(commitsList, function (idx, commit) {
-            var commitId = commitsByHash[commit.hash];
-            var commitTime = commit.date.valueOf();
+            // Lookup parent commit
+            var parentCommit = commitsByHash[commit.hash];
+            // If we could not find parent commit
+            if (!parentCommit) {
+                console.log("Could not find parent commit", commit.hash);
+                return; // Continue loop
+            }
+            // Loop over all commit changes
             core.for(commit.changes, function (idx, change) {
+                // Lookup file changed by path
                 var filesList = filesByPath[change.path];
                 core.for(filesList, function (idx, file) {
-                    if (file.add_git_commit_time <= commitTime) {
-                        if (file.del_git_commit_time == null || file.del_git_commit_time >= commitTime) {
+                    // If file was alive at commit time
+                    if (file.add_git_commit_time <= parentCommit.time) {
+                        if (file.del_git_commit_time == null || file.del_git_commit_time >= parentCommit.time) {
+                            // Insert change datas
                             insertedChanges.push({
-                                "git_repo_id": repository,
+                                "git_repo_id": repository.id,
+                                "git_commit_id": parentCommit.id,
                                 "git_file_id": file.git_file_id,
-                                "git_commit_id": commitId,
                                 "additions": change.additions,
                                 "deletions": change.deletions,
                                 "changes": change.total,
