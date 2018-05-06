@@ -62,11 +62,21 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
             query.execute(function (success, results, error) {
                 var deleteds = 0;
                 core.for(results, function (idx, git_file) {
+                    console.log("File", git_file.id, git_file.path, !git_file.del_git_commit_id);
                     if (git_file.del_git_commit_id) {
                         deleteds++;
                     }
                 });
                 console.log("Files count:", results.length, "deleteds:", deleteds);
+            });
+
+            var query = dbController.query("git_change");
+            query.select("*");
+            query.execute(function (success, results, error) {
+                core.for(results, function (idx, git_change) {
+                    console.log("Change", git_change.git_file_id, git_change.additions, git_change.deletions);
+                });
+                console.log("Files change:", results.length);
             });
 
         });

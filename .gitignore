@@ -1,2 +1,3 @@
 node_modules
 database/dev.sqlite3
+**/.DS_Store
