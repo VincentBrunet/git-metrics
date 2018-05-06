@@ -221,10 +221,13 @@ $this.updateFilesDeletions = function (repository, commitsByHash, commitsList, n
         var filesUpdatesKeys = [];
         var filesUpdatesValues = [];
         core.for(filesDeletedByCommitId, function (commitId, filesIds) {
-            filesUpdatesKeys.push(filesIds);
-            filesUpdatesValues.push({
-                "del_git_commit_id": commitId,
-            })
+            var filesIdsChunk = core.chunks(filesIds, 100);
+            core.for(filesIdsChunk, function (idx, filesIds) {
+                filesUpdatesKeys.push(filesIds);
+                filesUpdatesValues.push({
+                    "del_git_commit_id": commitId,
+                });
+            });
         });
         // Update files using update dictionary
         dbController.updateBy("git_file", "id", filesUpdatesKeys, filesUpdatesValues, function (success, results, error) {

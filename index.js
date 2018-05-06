@@ -20,11 +20,13 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
 
     gitLog.logsOfPreviousDays(repositoryPath, repositoryDays, function (success, commitsLines, error) {
 
+        /*
         var debugFile = "./git_logs.debug";
         var fs = require('fs');
         fs.writeFile(debugFile, commitsLines.join("\n"), function(err) {
             console.log("The file was saved!", debugFile);
         });
+        */
 
         var commitsList = gitParse.parseLogList(commitsLines);
 
@@ -57,8 +59,8 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
                 });
             });
 
-            dbDump.dumpCommits(false, function (success, commitsById, error) {
-                dbDump.dumpFiles(true, false, commitsById, function (success, filesById, error) {
+            dbDump.dumpCommits(false, false, function (success, commitsById, error) {
+                dbDump.dumpFiles(false, false, commitsById, function (success, filesById, error) {
                     dbDump.dumpChanges(false, commitsById, filesById, function (success, results, error) {
                         dbDump.dumpRenames(false, commitsById, filesById, function (success, results, error) {
                             console.log("Dump done");

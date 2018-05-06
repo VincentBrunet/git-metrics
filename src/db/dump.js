@@ -7,7 +7,7 @@ var dbController = require("./controller");
 
 var $this = {};
 
-$this.dumpCommits = function (log, next) {
+$this.dumpCommits = function (log, logParentedCommits, next) {
     var commitsById = {};
     var query = dbController.query("git_commit");
     query.select("*");
@@ -16,7 +16,9 @@ $this.dumpCommits = function (log, next) {
         core.for(results, function (idx, git_commit) {
             commitsById[git_commit.id] = git_commit;
             if (log) {
-                console.log("Commit", git_commit.id, "\t", git_commit.hash, "<" + git_commit.parents + ">", moment(git_commit.time).calendar());
+                if (git_commit.parents <= 0 || logParentedCommits) {
+                    console.log("Commit", git_commit.id, "\t", git_commit.hash, "<" + git_commit.parents + ">", moment(git_commit.time).calendar());
+                }
             }
         });
         console.log("Commit count:", results.length);
