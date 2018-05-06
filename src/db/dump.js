@@ -37,15 +37,14 @@ $this.dumpFiles = function (log, logDeletedFiles, commitsById, next) {
                 var del_git_commit = commitsById[git_file.del_git_commit_id];
                 var timing = "(" + moment(add_git_commit.time).calendar() + " => ";
                 if (del_git_commit) {
-                    if (!logDeletedFiles) {
-                        return; // Continue loop
-                    }
                     timing += "" + moment(del_git_commit.time).calendar() + ")";
                 }
                 else {
                     timing += "NULL)";
                 }
-                console.log("File", git_file.id, "\t", git_file.path, timing);
+                if (!del_git_commit || logDeletedFiles) {
+                    console.log("File", git_file.id, "\t", git_file.path, timing);
+                }
             }
             if (git_file.del_git_commit_id) {
                 deleteds++;
