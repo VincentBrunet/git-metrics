@@ -20,7 +20,15 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
 
     gitLog.logsOfPreviousDays(repositoryPath, repositoryDays, function (success, commitsLines, error) {
 
+        var debugFile = "./git_logs.debug";
+        var fs = require('fs');
+        fs.writeFile(debugFile, commitsLines.join("\n"), function(err) {
+            console.log("The file was saved!", debugFile);
+        });
+
         var commitsList = gitParse.parseLogList(commitsLines);
+
+
 
         console.log("gitLog.logsOfPreviousDays", success, commitsList.length);
 
