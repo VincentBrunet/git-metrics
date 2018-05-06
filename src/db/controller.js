@@ -195,18 +195,52 @@ $this.inserts = function (tableName, tableRows, insertCondition, next) {
 };
 
 $this.updateBy = function (tableName, indexColumn, indexedRows, next) {
-    // Create update queries
-    var updateQueries = [];
-    core.for(indexedRows, function (key, value) {
-        var query = $this.query(tableName);
-        query.where(indexColumn, key);
-        query.update(value);
-        updateQueries.push(query);
-    });
-    // Batch update queries
-    $this.combined(updateQueries, function (success, results, error) {
-        // Done
-        return next(success, results, error);
+    // Update chunks
+    var updateChunks = core.chunks(indexedRows, 100);
+    // Update state
+    var _success = true;
+    var _total = core.count(updateChunks);
+    var _dones = 0;
+    var _error = undefined;
+    // Progression
+    var updateCount = core.count(indexedRows);
+    var updateDone = 0;
+    var logs = updateCount > 10000;
+    if (logs) {
+        console.log("Starting", updateCount, "updates");
+    }
+    // Sequentially update by chunk
+    core.seq(updateChunks, function (idx, updateChunk, next) {
+        // Make the queries
+        var updateQueries = [];
+        core.for(updateChunk, function (key, value) {
+            var query = $this.query(tableName);
+            query.where(indexColumn, key);
+            query.update(value);
+            updateQueries.push(query);
+            updateDone++;
+        });
+        // Batch update queries
+        $this.combined(updateQueries, function (success, results, error) {
+            // Failure count
+            if (!success) {
+                _success = false;
+                _error = error;
+            }
+            // Success count
+            else {
+                _dones++;
+            }
+            // Progress
+            if (logs) {
+                console.log("Ran", updateDone, "out of", updateCount, "updates");
+            }
+            // Done
+            return next();
+        });
+    }, function () {
+        // Return queries success stats
+        return next(_success, _dones / _total, _error);
     });
 };
 

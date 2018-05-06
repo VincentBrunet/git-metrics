@@ -50,7 +50,7 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
             });
 
             dbDump.dumpCommits(false, function (success, commitsById, error) {
-                dbDump.dumpFiles(false, commitsById, function (success, filesById, error) {
+                dbDump.dumpFiles(false, false, commitsById, function (success, filesById, error) {
                     dbDump.dumpChanges(false, commitsById, filesById, function (success, results, error) {
                         dbDump.dumpRenames(false, commitsById, filesById, function (success, results, error) {
                             console.log("Dump done");

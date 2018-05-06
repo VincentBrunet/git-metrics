@@ -79,6 +79,9 @@ $this.repeat = function (times, elem, done) {
 };
 
 $this.chunks = function (iterable, chunkSize) {
+    if (!chunkSize) {
+        chunkSize = 100;
+    }
     var isArray = $this.isArray(iterable);
     var chunks = [];
     var currentChunk = {};
