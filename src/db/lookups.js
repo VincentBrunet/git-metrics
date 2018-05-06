@@ -73,8 +73,8 @@ $this.lookupFilesByPaths = function (repositoryId, filesPaths, next) {
         query.where("git_file.git_repo_id", repositoryId);
         query.whereIn("path", chunk);
         query.selectAs({
-            "git_file.id": "git_file_id",
-            "git_file.path": "git_file_path",
+            "git_file.id": "id",
+            "git_file.path": "path",
             "add_git_commit.id": "add_git_commit_id",
             "add_git_commit.time": "add_git_commit_time",
             "del_git_commit.id": "del_git_commit_id",
@@ -84,12 +84,13 @@ $this.lookupFilesByPaths = function (repositoryId, filesPaths, next) {
     });
     // Run all batches query and merge results
     dbController.combined(batch, function (success, git_files, error) {
+        console.log("lookupFilesByPaths", success, filesPaths.length, git_files.length, error);
         // Index files by path
         var filesByPath = {};
         core.for(git_files, function (idx, git_file) {
-            var filesList = filesByPath[git_file.git_file_path] || [];
+            var filesList = filesByPath[git_file.path] || [];
             filesList.push(git_file);
-            filesByPath[git_file.git_file_path] = filesList;
+            filesByPath[git_file.path] = filesList;
         });
         // Done, transfer files indexed by path
         return next(success, filesByPath, error);

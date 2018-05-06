@@ -44,13 +44,24 @@ $this.isCommitHash = function (string) {
 
 $this.parseFilePaths = function (filePath) {
     // Check if path contains renaming pattern
-    var renameRegex = /({.* => .*})/gi;
-    var renameCheck = filePath.match(renameRegex);
-    if (renameCheck) {
+    var renameRegex1 = /({.* => .*})/gi;
+    var renameCheck1 = filePath.match(renameRegex1);
+    if (renameCheck1) {
         // If it does, parse and reconstruct before => after paths
-        var renameValue = renameCheck[0];
+        var renameValue = renameCheck1[0];
         var renameParsed = renameValue.replace("{", "").replace("}", "");
         var renamePaths = renameParsed.split(" => ");
+        // Format results
+        var filePathBefore = filePath.replace(renameValue, renamePaths[0]);
+        var filePathAfter = filePath.replace(renameValue, renamePaths[1]);
+        return [filePathBefore, filePathAfter];
+    }
+    var renameRegex2 = /^(.* => .*)$/gi;
+    var renameCheck2 = filePath.match(renameRegex2);
+    if (renameCheck2) {
+        // If it does, parse and reconstruct before => after paths
+        var renameValue = renameCheck2[0];
+        var renamePaths = renameValue.split(" => ");
         // Format results
         var filePathBefore = filePath.replace(renameValue, renamePaths[0]);
         var filePathAfter = filePath.replace(renameValue, renamePaths[1]);
@@ -208,6 +219,9 @@ $this.parseLogList = function (commitsLines, logs) {
         // Save all commit data parsed
         commitsData.push(commitData);
     }
+    // Sort commits by date
+    commitsData = core.sortBy(commitsData, "date");
+    // Done
     return commitsData;
 };
 

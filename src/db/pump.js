@@ -125,6 +125,7 @@ $this.updateFilesInsertions = function (repository, commitsByHash, commitsList, 
     core.for(commitsList, function (idx, commit) {
         // Lookup parent commit
         var parentCommit = commitsByHash[commit.hash];
+        // If we could not find parent commit
         if (!parentCommit) {
             console.log("Could not find parent commit", commit.hash);
             return; // Continue loop
@@ -190,13 +191,18 @@ $this.updateFilesDeletions = function (repository, commitsByHash, commitsList, n
             core.for(commitDeletions, function (idx, deletion) {
                 // Lookup files from path
                 var filesList = filesByPath[deletion];
+                // If could not find files from path
+                if (!filesList) {
+                    console.log("Could not find file for path", deletion);
+                    return; // Continue loop
+                }
                 core.for(filesList, function (idx, file) {
                     // If path deletion belongs to this file (not already deleted and stuff)
                     if (file.add_git_commit_time <= parentCommit.time) {
                         if (file.del_git_commit_time == null || file.del_git_commit_time >= parentCommit.time) {
                             if (file.del_git_commit_id != parentCommit.id) {
                                 // Update file record
-                                filesUpdatedById[file.git_file_id] = {
+                                filesUpdatedById[file.id] = {
                                     "del_git_commit_id": parentCommit.id,
                                 };
                             }
@@ -302,6 +308,11 @@ $this.updateChanges = function (repository, commitsByHash, commitsList, next) {
             core.for(commit.changes, function (idx, change) {
                 // Lookup file changed by path
                 var filesList = filesByPath[change.path];
+                // If could not find files from path
+                if (!filesList) {
+                    console.log("Could not find files from path", change.path);
+                    return; // Continue loop
+                }
                 core.for(filesList, function (idx, file) {
                     // If file was alive at commit time
                     if (file.add_git_commit_time <= parentCommit.time) {
@@ -310,7 +321,7 @@ $this.updateChanges = function (repository, commitsByHash, commitsList, next) {
                             insertedChanges.push({
                                 "git_repo_id": repository.id,
                                 "git_commit_id": parentCommit.id,
-                                "git_file_id": file.git_file_id,
+                                "git_file_id": file.id,
                                 "additions": change.additions,
                                 "deletions": change.deletions,
                                 "changes": change.total,
@@ -333,7 +344,7 @@ $this.updateAll = function (repositoryUrl, commitsList, next) {
 
     $this.pumpRepository(repositoryUrl, function (success, repository, error) {
 
-        console.log("$this.pumpRepository", success, repository, error);
+        console.log("$this.pumpRepository", success, repository.id, error);
 
         $this.updateAuthors(commitsList, function (success, authorsByName, error) {
 

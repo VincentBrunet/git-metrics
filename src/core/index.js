@@ -112,4 +112,6 @@ $this.functions = _.functions;
 $this.values = _.values;
 $this.keys = _.keys;
 
+$this.sortBy = _.sortBy;
+
 module.exports = $this;
