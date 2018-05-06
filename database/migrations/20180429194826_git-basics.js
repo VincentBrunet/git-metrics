@@ -78,6 +78,7 @@ exports.up = $sugar.migration(function ($mg, knex) {
         $mg.addColumn(table, "additions", "integer");
         $mg.addColumn(table, "deletions", "integer");
         $mg.addColumn(table, "changes", "integer");
+        $mg.addColumn(table, "binary", "integer");
         // No change with same commit and file (and repo)
         $mg.addUnique(table, ["git_repo_id", "git_commit_id", "git_file_id"]);
     });

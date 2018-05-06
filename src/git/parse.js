@@ -7,38 +7,24 @@ var core = require("../core");
 var $this = {};
 
 $this.isCommitHash = function (string) {
+    // Hash is 40 character
     if (string.length != 40) {
         return false;
     }
+    // Only hexadecimal characters allowed
     var allowedChars = {
-        "a": true,
-        "b": true,
-        "c": true,
-        "d": true,
-        "e": true,
-        "f": true,
-        "A": true,
-        "B": true,
-        "C": true,
-        "D": true,
-        "E": true,
-        "F": true,
-        "0": true,
-        "1": true,
-        "2": true,
-        "3": true,
-        "4": true,
-        "5": true,
-        "6": true,
-        "7": true,
-        "8": true,
-        "9": true,
+        "a": true, "b": true, "c": true, "d": true, "e": true, "f": true,
+        "A": true, "B": true, "C": true, "D": true, "E": true, "F": true,
+        "0": true, "1": true, "2": true, "3": true, "4": true,
+        "5": true, "6": true, "7": true, "8": true, "9": true,
     };
+    // Check if all characters in string are allowed
     for (var i = 0; i > string.length; i++) {
         if (!allowedChars[string[i]]) {
             return false;
         }
     }
+    // No error, we good
     return true;
 };
 
@@ -183,35 +169,36 @@ $this.parseLogList = function (commitsLines, logs) {
                 // If its a file change line
                 var fileLine = line.split("\t");
                 if (fileLine.length >= 3) {
-                    // If its NOT a binary change
-                    if (fileLine[0] != "-" && fileLine[1] != "-") {
-                        // Read file path and change counts
-                        var changeData = {
-                            path: null,
-                            deletions: 0,
-                            additions: 0,
-                            total: 0,
+                    // Parse file path
+                    var filePaths = $this.parseFilePaths(fileLine[2].trim());
+                    // If we have a rename
+                    if (filePaths.length > 1) {
+                        var renameData = {
+                            before: core.path(filePaths[0]),
+                            after: core.path(filePaths[1]),
                         };
-                        // Read log line content
-                        var filePaths = $this.parseFilePaths(fileLine[2].trim());
-                        var addCount = parseInt(fileLine[0]);
-                        var delCount = parseInt(fileLine[1]);
-                        var changeCount = addCount + delCount;
-                        // If we have a rename
-                        if (filePaths.length > 1) {
-                            var renameData = {
-                                before: core.path(filePaths[0]),
-                                after: core.path(filePaths[1]),
-                            };
-                            commitData.renames.push(renameData);
-                        }
-                        // Save data
-                        changeData.path = core.path(filePaths[0]);
-                        changeData.additions = addCount;
-                        changeData.deletions = delCount;
-                        changeData.total = changeCount;
-                        commitData.changes.push(changeData);
+                        commitData.renames.push(renameData);
                     }
+                    // Read log line change sizes
+                    var isBinary = false;
+                    var addCount = parseInt(fileLine[0]);
+                    if (isNaN(addCount)) {
+                        isBinary = true;
+                        addCount = 0;
+                    }
+                    var delCount = parseInt(fileLine[1]);
+                    if (isNaN(delCount)) {
+                        isBinary = true;
+                        delCount = 0;
+                    }
+                    // Save data
+                    commitData.changes.push({
+                        path: core.path(filePaths[0]),
+                        additions: addCount,
+                        deletions: delCount,
+                        total: addCount + delCount,
+                        binary: isBinary,
+                    });
                     continue;
                 }
             }

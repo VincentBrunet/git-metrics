@@ -175,7 +175,7 @@ $this.updateFilesDeletions = function (repository, commitsByHash, commitsList, n
     // Lookup all files deleteds
     dbLookups.lookupFilesByPaths(repository.id, core.keys(commitsFilesDeletions), function (success, filesByPath, error) {
         // List file updates to be applied
-        var filesUpdatedById = {};
+        var filesDeletedByCommitId = {};
         core.for(commitsList, function (idx, commit) {
             // Lookup parent commit
             var parentCommit = commitsByHash[commit.hash];
@@ -208,17 +208,26 @@ $this.updateFilesDeletions = function (repository, commitsByHash, commitsList, n
                         if (file.del_git_commit_time == null || file.del_git_commit_time >= parentCommit.time) {
                             if (file.del_git_commit_id != parentCommit.id) {
                                 // Update file record
-                                filesUpdatedById[file.id] = {
-                                    "del_git_commit_id": parentCommit.id,
-                                };
+                                var fileList = filesDeletedByCommitId[parentCommit.id] || [];
+                                fileList.push(file.id);
+                                filesDeletedByCommitId[parentCommit.id] = fileList;
                             }
                         }
                     }
                 });
             });
         });
+        // Format updates
+        var filesUpdatesKeys = [];
+        var filesUpdatesValues = [];
+        core.for(filesDeletedByCommitId, function (commitId, filesIds) {
+            filesUpdatesKeys.push(filesIds);
+            filesUpdatesValues.push({
+                "del_git_commit_id": commitId,
+            })
+        });
         // Update files using update dictionary
-        dbController.updateBy("git_file", "id", filesUpdatedById, function (success, results, error) {
+        dbController.updateBy("git_file", "id", filesUpdatesKeys, filesUpdatesValues, function (success, results, error) {
             // Done
             return next(success, -notFoundFiles, error);
         });
@@ -337,6 +346,7 @@ $this.updateChanges = function (repository, commitsByHash, commitsList, next) {
                                 "additions": change.additions,
                                 "deletions": change.deletions,
                                 "changes": change.total,
+                                "binary": +change.binary,
                             });
                         }
                     }

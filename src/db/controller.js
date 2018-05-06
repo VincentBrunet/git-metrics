@@ -90,7 +90,7 @@ $this.rawQuery = function (str) {
 
 $this.parallel = function (queries, done) {
     var _max = core.count(queries);
-    var logs = _max > 1000;
+    var logs = _max >= 200;
     if (logs) {
         console.log("Starting", _max, "db queries");
     }
@@ -194,18 +194,23 @@ $this.inserts = function (tableName, tableRows, insertCondition, next) {
     });
 };
 
-$this.updateBy = function (tableName, indexColumn, indexedRows, next) {
+$this.updateBy = function (tableName, indexColumn, indexKeys, indexedValues, next) {
+    // Update data
+    var updateData = [];
+    var updateCount = core.count(indexKeys);
+    for (var i = 0; i < updateCount; i++) {
+        updateData.push([indexKeys[i], indexedValues[i]]);
+    }
     // Update chunks
-    var updateChunks = core.chunks(indexedRows, 100);
+    var updateChunks = core.chunks(updateData, 100);
     // Update state
     var _success = true;
     var _total = core.count(updateChunks);
     var _dones = 0;
     var _error = undefined;
     // Progression
-    var updateCount = core.count(indexedRows);
     var updateDone = 0;
-    var logs = updateCount > 10000;
+    var logs = updateCount > 200;
     if (logs) {
         console.log("Starting", updateCount, "updates");
     }
@@ -213,9 +218,16 @@ $this.updateBy = function (tableName, indexColumn, indexedRows, next) {
     core.seq(updateChunks, function (idx, updateChunk, next) {
         // Make the queries
         var updateQueries = [];
-        core.for(updateChunk, function (key, value) {
+        core.for(updateChunk, function (idx, data) {
+            var key = data[0];
+            var value = data[1];
             var query = $this.query(tableName);
-            query.where(indexColumn, key);
+            if (core.isArray(key)) {
+                query.whereIn(indexColumn, key);
+            }
+            else {
+                query.where(indexColumn, key);
+            }
             query.update(value);
             updateQueries.push(query);
             updateDone++;
