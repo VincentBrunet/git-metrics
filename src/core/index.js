@@ -108,6 +108,14 @@ $this.chunks = function (iterable, chunkSize) {
     return chunks;
 };
 
+$this.path = function (path) {
+    path = path.replace("\\", "/");
+    while (path.includes("//")) {
+        path = path.replace("//", "/");
+    }
+    return path;
+};
+
 $this.functions = _.functions;
 $this.values = _.values;
 $this.keys = _.keys;

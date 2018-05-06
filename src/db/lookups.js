@@ -84,7 +84,6 @@ $this.lookupFilesByPaths = function (repositoryId, filesPaths, next) {
     });
     // Run all batches query and merge results
     dbController.combined(batch, function (success, git_files, error) {
-        console.log("lookupFilesByPaths", success, filesPaths.length, git_files.length, error);
         // Index files by path
         var filesByPath = {};
         core.for(git_files, function (idx, git_file) {

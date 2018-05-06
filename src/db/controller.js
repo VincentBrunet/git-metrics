@@ -90,7 +90,10 @@ $this.rawQuery = function (str) {
 
 $this.parallel = function (queries, done) {
     var _max = core.count(queries);
-    //console.log("Starting", _max, "db queries");
+    var logs = _max > 1000;
+    if (logs) {
+        console.log("Starting", _max, "db queries");
+    }
     var asArray = core.isArray(queries);
     var _total = 0;
     var _success = true;
@@ -126,7 +129,9 @@ $this.parallel = function (queries, done) {
                 }
                 _todo -= 1;
                 if (_todo <= 0) {
-                    //console.log("Done with", _total, "queries", "out of", _max);
+                    if (logs) {
+                        console.log("Done with", _total, "queries", "out of", _max);
+                    }
                     next();
                 }
             });
@@ -158,7 +163,11 @@ $this.batch = function (datas, queryGenerator) {
     core.for(chunks, function (idx, chunk) {
         queries.push(queryGenerator(chunk));
     });
-    //console.log("Batched", core.count(datas), "datasets, as", queries.length, "db queries");
+    var dataCount = core.count(datas);
+    if (dataCount > 10000) {
+        var queryCount = core.count(queries);
+        console.log("Batched", dataCount, "datasets, as", queryCount, "db queries");
+    }
     return queries;
 };
 

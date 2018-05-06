@@ -171,13 +171,13 @@ $this.parseLogList = function (commitsLines, logs) {
                 // If its a file creation event
                 if (line.startsWith(" create mode")) {
                     var filePath = line.substring(20);
-                    commitData.additions.push(filePath);
+                    commitData.additions.push(core.path(filePath));
                     continue;
                 }
                 // If its a file deletion event
                 if (line.startsWith(" delete mode")) {
                     var filePath = line.substring(20);
-                    commitData.deletions.push(filePath);
+                    commitData.deletions.push(core.path(filePath));
                     continue;
                 }
                 // If its a file change line
@@ -200,13 +200,13 @@ $this.parseLogList = function (commitsLines, logs) {
                         // If we have a rename
                         if (filePaths.length > 1) {
                             var renameData = {
-                                before: filePaths[0],
-                                after: filePaths[1],
+                                before: core.path(filePaths[0]),
+                                after: core.path(filePaths[1]),
                             };
                             commitData.renames.push(renameData);
                         }
                         // Save data
-                        changeData.path = filePaths[0];
+                        changeData.path = core.path(filePaths[0]);
                         changeData.additions = addCount;
                         changeData.deletions = delCount;
                         changeData.total = changeCount;

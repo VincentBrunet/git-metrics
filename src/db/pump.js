@@ -85,6 +85,8 @@ $this.updateCommits = function (repository, authorsByName, commitsList, next) {
 };
 
 $this.updateTree = function (repository, commitsByHash, commitsList, next) {
+    // Count commits not found
+    var notFoundCommits = 0;
     // List all commit parenting relations
     var treesInserted = [];
     core.for(commitsList, function (idx, commit) {
@@ -101,7 +103,8 @@ $this.updateTree = function (repository, commitsByHash, commitsList, next) {
             var parentCommit = commitsByHash[parentHash];
             // If we could not find parent commit
             if (!parentCommit) {
-                console.log("Could not find parent commit", parentHash);
+                notFoundCommits++;
+                //console.log("Could not find parent commit", parentHash);
                 return; // Continue loop
             }
             // Insert parenting relation
@@ -115,7 +118,7 @@ $this.updateTree = function (repository, commitsByHash, commitsList, next) {
     // Insert all found parenting relations
     dbController.inserts("git_tree", treesInserted, "insert or ignore", function (success, results, error) {
         // Done
-        return next(success, results, error);
+        return next(success, -notFoundCommits, error);
     });
 };
 
@@ -157,6 +160,8 @@ $this.updateFilesInsertions = function (repository, commitsByHash, commitsList, 
 };
 
 $this.updateFilesDeletions = function (repository, commitsByHash, commitsList, next) {
+    // Count files paths not found
+    var notFoundFiles = 0;
     // List all files found for mark as deleted
     var commitsFilesDeletions = {};
     core.for(commitsList, function (idx, commit) {
@@ -193,7 +198,8 @@ $this.updateFilesDeletions = function (repository, commitsByHash, commitsList, n
                 var filesList = filesByPath[deletion];
                 // If could not find files from path
                 if (!filesList) {
-                    console.log("Could not find file for path", deletion);
+                    notFoundFiles++;
+                    //console.log("Could not find file for path", deletion);
                     return; // Continue loop
                 }
                 core.for(filesList, function (idx, file) {
@@ -214,12 +220,14 @@ $this.updateFilesDeletions = function (repository, commitsByHash, commitsList, n
         // Update files using update dictionary
         dbController.updateBy("git_file", "id", filesUpdatedById, function (success, results, error) {
             // Done
-            return next(success, results, error);
+            return next(success, -notFoundFiles, error);
         });
     });
 };
 
 $this.updateFilesRenames = function (repository, commitsByHash, commitsList, next) {
+    // Count files not found
+    var notFoundFiles = 0;
     // List renamed commits files paths
     var filesRenamesPaths = {};
     core.for(commitsList, function (idx, commit) {
@@ -241,19 +249,6 @@ $this.updateFilesRenames = function (repository, commitsByHash, commitsList, nex
             }
             // Loop over all renames of commit
             core.for(commit.renames, function (idx, rename) {
-                // Lookup file before rename
-                var fileBefore = undefined;
-                var filesBefore = filesByPath[rename.before];
-                core.for(filesBefore, function (idx, file) {
-                    if (file.del_git_commit_id == parentCommit.id) {
-                        fileBefore = file;
-                    }
-                });
-                // If we could not find file before rename
-                if (!fileBefore) {
-                    console.log("Could not find file before rename", rename.before);
-                    return; // Continue loop
-                }
                 // Lookup file after rename
                 var fileAfter = undefined;
                 var filesAfter = filesByPath[rename.after];
@@ -265,6 +260,20 @@ $this.updateFilesRenames = function (repository, commitsByHash, commitsList, nex
                 // If we could not find file after rename
                 if (!fileAfter) {
                     console.log("Could not find file after rename", rename.after);
+                    return; // Continue loop
+                }
+                // Lookup file before rename
+                var fileBefore = undefined;
+                var filesBefore = filesByPath[rename.before];
+                core.for(filesBefore, function (idx, file) {
+                    if (file.del_git_commit_id == parentCommit.id) {
+                        fileBefore = file;
+                    }
+                });
+                // If we could not find file before rename
+                if (!fileBefore) {
+                    notFoundFiles++;
+                    //console.log("Could not find file before rename", rename.before);
                     return; // Continue loop
                 }
                 // Insert rename instance when everything is found
@@ -279,12 +288,14 @@ $this.updateFilesRenames = function (repository, commitsByHash, commitsList, nex
         // Insert all rename previously found
         dbController.inserts("git_rename", renamesInserted, "insert or ignore", function (success, results, error) {
             // Done
-            return next(success, results, error);
+            return next(success, -notFoundFiles, error);
         });
     });
 };
 
 $this.updateChanges = function (repository, commitsByHash, commitsList, next) {
+    // Count files not found
+    var notFoundFiles = 0;
     // List file changes paths found
     var commitsChangesPaths = {};
     core.for(commitsList, function (idx, commit) {
@@ -310,7 +321,8 @@ $this.updateChanges = function (repository, commitsByHash, commitsList, next) {
                 var filesList = filesByPath[change.path];
                 // If could not find files from path
                 if (!filesList) {
-                    console.log("Could not find files from path", change.path);
+                    notFoundFiles++;
+                    //console.log("Could not find files from path", change.path);
                     return; // Continue loop
                 }
                 core.for(filesList, function (idx, file) {
@@ -333,7 +345,7 @@ $this.updateChanges = function (repository, commitsByHash, commitsList, next) {
         });
         // Do insert all changes (ignore already inserted ones)
         dbController.inserts("git_change", insertedChanges, "insert or ignore", function (success, results, error) {
-            return next(success, results, error);
+            return next(success, -notFoundFiles, error);
         });
     });
 };
