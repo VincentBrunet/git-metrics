@@ -3,6 +3,11 @@ var _ = require("lodash");
 
 var $this = {};
 
+$this.moment = require("moment");
+$this.moment.suppressDeprecationWarnings = true;
+
+$this.types = require("./types");
+
 $this.isArray = _.isArray;
 
 $this.count = function (collection) {

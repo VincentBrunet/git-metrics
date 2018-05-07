@@ -1,7 +1,4 @@
 
-var moment = require("moment");
-moment.suppressDeprecationWarnings = true;
-
 var core = require("../core");
 
 var $this = {};
@@ -133,7 +130,7 @@ $this.parseLogList = function (commitsLines, logs) {
             // Date line
             if (line.startsWith("Date:")) {
                 var dateLine = line.split("Date:");
-                commitData.date = moment(dateLine[1].trim());
+                commitData.date = core.moment(dateLine[1].trim());
                 continue;
             }
             // Empty line

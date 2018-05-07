@@ -50,15 +50,20 @@ $local._query = function (tableName) {
         return self.select(columns);
     };
     // Execute the query with a callback
-    self.execute = function (done) {
+    self.execute = function (next) {
+        var startTime = core.moment();
         self._internal.then(function (datas) {
+            var execTime = core.moment().diff(startTime, "ms");
+            if (execTime > 500) {
+                console.log("Query:", self._internal._method, tableName, execTime + "ms");
+            }
             var rows = datas;
             if (!core.isArray(rows)) {
                 rows = core.values(datas);
             }
             try {
-                if (done) {
-                    return done(true, rows);
+                if (next) {
+                    return next(true, rows);
                 }
             }
             catch (error) {
@@ -66,8 +71,8 @@ $local._query = function (tableName) {
             }
         }).catch(function (error) {
             console.log("Error while processing query", error);
-            if (done) {
-                return done(false, null, error);
+            if (next) {
+                return next(false, null, error);
             }
         });
     };
@@ -88,7 +93,12 @@ $this.rawQuery = function (str) {
     return $this.query().raw(str);
 };
 
-$this.parallel = function (queries, done) {
+$this.explain = function (query, next) {
+    var query = $this.rawQuery("EXPLAIN QUERY PLAN " + query.toString());
+    query.execute(next);
+};
+
+$this.parallel = function (queries, next) {
     var _max = core.count(queries);
     var logs = _max >= 200;
     if (logs) {
@@ -137,37 +147,44 @@ $this.parallel = function (queries, done) {
             });
         });
     }, function () {
-        return done(_success, _results, _error);
+        return next(_success, _results, _error);
     });
 };
 
 $this.combined = function (queries, next) {
-    var isArray = core.isArray(queries);
+    // Run all queries in parallel
     $this.parallel(queries, function (success, results, error) {
+        // On failure of one, fails
         if (!success) {
             return next(false, null, error);
         }
+        // Combine all results from all queries into one list
         var finalResults = [];
         core.for(results, function (idx, result) {
             core.for(result.datas, function (idx, data) {
                 finalResults.push(data);
             });
         });
+        // Done
         return next(success, finalResults, error);
     });
 };
 
 $this.batch = function (datas, queryGenerator) {
+    // Cut data into multiple chunks
     var chunks = core.chunks(datas, 100);
     var queries = [];
+    // Generate a query for each chunk
     core.for(chunks, function (idx, chunk) {
         queries.push(queryGenerator(chunk));
     });
+    // Optionally log large batches works
     var dataCount = core.count(datas);
     if (dataCount > 10000) {
         var queryCount = core.count(queries);
         console.log("Batched", dataCount, "datasets, as", queryCount, "db queries");
     }
+    // Done
     return queries;
 };
 

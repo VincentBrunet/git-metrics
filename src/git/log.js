@@ -1,6 +1,5 @@
 
 var child_process = require('child_process');
-var moment = require("moment");
 
 var core = require("../core");
 
@@ -33,7 +32,7 @@ $this.logEachPastDays = function (repository, maxDate, pastDays, pastLines, next
         return next(true, pastLines);
     }
     var daysLogged = Math.min(pastDays, 7);
-    var minDate = moment(maxDate).subtract(daysLogged, 'days');
+    var minDate = core.moment(maxDate).subtract(daysLogged, 'days');
     $this.logOnPeriod(repository, maxDate, minDate, function (success, result, error) {
         if (!success) {
             return next(false, pastLines, error);
@@ -49,7 +48,7 @@ $this.logEachPastDays = function (repository, maxDate, pastDays, pastLines, next
 };
 
 $this.logsOfPreviousDays = function (repository, days, next) {
-    var now = moment();
+    var now = core.moment();
     $this.logEachPastDays(repository, now, days, [], function (success, commitsLines, error) {
         return next(success, commitsLines, error);
     });

@@ -15,6 +15,15 @@ exports.up = $sugar.migration(function ($mg, knex) {
         // No repo with same url
         $mg.addUnique(table, "url");
     });
+    $mg.createTable("git_contributor", function (table) {
+        // Commit links
+        $mg.addColumn(table, "git_repo_id", "integer");
+        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
+        $mg.addColumn(table, "git_author_id", "integer");
+        $mg.addForeignLink(table, "git_author_id", "git_author.id");
+        // No duplicate contributor for each repo
+        $mg.addUnique(table, ["git_repo_id", "git_author_id"]);
+    });
     $mg.createTable("git_commit", function (table) {
         // Commit links
         $mg.addColumn(table, "git_repo_id", "integer");
@@ -72,6 +81,8 @@ exports.up = $sugar.migration(function ($mg, knex) {
         $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addColumn(table, "git_commit_id", "integer");
         $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
+        $mg.addColumn(table, "git_author_id", "integer");
+        $mg.addForeignLink(table, "git_author_id", "git_author.id");
         $mg.addColumn(table, "git_file_id", "integer");
         $mg.addForeignLink(table, "git_file_id", "git_file.id");
         // Change properties
@@ -88,6 +99,7 @@ exports.up = $sugar.migration(function ($mg, knex) {
 exports.down = $sugar.migration(function ($mg) {
   $mg.dropTable("git_author");
   $mg.dropTable("git_repo");
+  $mg.dropTable("git_contributor");
   $mg.dropTable("git_commit");
   $mg.dropTable("git_tree");
   $mg.dropTable("git_file");

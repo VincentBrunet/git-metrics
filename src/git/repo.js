@@ -1,6 +1,5 @@
 
 var child_process = require('child_process');
-var moment = require("moment");
 
 var gitParse = require("./parse");
 

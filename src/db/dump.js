@@ -1,6 +1,4 @@
 
-var moment = require("moment");
-
 var core = require("../core");
 
 var dbController = require("./controller");
@@ -17,7 +15,7 @@ $this.dumpCommits = function (log, logParentedCommits, next) {
             commitsById[git_commit.id] = git_commit;
             if (log) {
                 if (git_commit.parents <= 0 || logParentedCommits) {
-                    console.log("Commit", git_commit.id, "\t", git_commit.hash, "<" + git_commit.parents + ">", moment(git_commit.time).calendar());
+                    console.log("Commit", git_commit.id, "\t", git_commit.hash, "<" + git_commit.parents + ">", core.moment(git_commit.time).calendar());
                 }
             }
         });
@@ -37,9 +35,9 @@ $this.dumpFiles = function (log, logDeletedFiles, commitsById, next) {
             if (log) {
                 var add_git_commit = commitsById[git_file.add_git_commit_id];
                 var del_git_commit = commitsById[git_file.del_git_commit_id];
-                var timing = "(" + moment(add_git_commit.time).calendar() + " => ";
+                var timing = "(" + core.moment(add_git_commit.time).calendar() + " => ";
                 if (del_git_commit) {
-                    timing += "" + moment(del_git_commit.time).calendar() + ")";
+                    timing += "" + core.moment(del_git_commit.time).calendar() + ")";
                 }
                 else {
                     timing += "NULL)";
@@ -65,7 +63,7 @@ $this.dumpChanges = function (log, commitsById, filesById, next) {
             core.for(results, function (idx, git_change) {
                 var git_commit = commitsById[git_change.git_commit_id];
                 var git_file = filesById[git_change.git_file_id];
-                var timing = "(" + moment(git_commit.time).calendar() + ")";
+                var timing = "(" + core.moment(git_commit.time).calendar() + ")";
                 console.log("Change", git_change.id, ":\t", git_commit.hash.substring(0, 7), "+" + git_change.additions + "\t", "-" + git_change.deletions + "\t", git_file.path, timing);
             });
         }
@@ -83,7 +81,7 @@ $this.dumpRenames = function (log, commitsById, filesById, next) {
                 var git_commit = commitById[git_rename.git_commit_id];
                 var before_git_file = fileById[git_rename.before_git_file_id];
                 var after_git_file = fileById[git_rename.after_git_file_id];
-                var timing = "(" + moment(git_commit.time).calendar() + ")";
+                var timing = "(" + core.moment(git_commit.time).calendar() + ")";
                 console.log("Rename", git_rename.id, ":\t", git_commit.hash.substring(0, 7), before_git_file.path, "=>", after_git_file.path, timing);
             });
         }

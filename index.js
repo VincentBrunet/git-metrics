@@ -9,8 +9,16 @@ var dbController = require("./src/db/controller");
 var dbPump = require("./src/db/pump");
 var dbDump = require("./src/db/dump");
 
-var repositoryPath = process.argv[2];
-var repositoryDays = parseInt(process.argv[3]);
+
+var commandType = process.argv[2];
+if (commandType == "API") {
+    var apiRun = require("./src/api/run");
+    apiRun.start("127.0.0.1", 8080);
+    return;
+}
+
+var repositoryPath = process.argv[3];
+var repositoryDays = parseInt(process.argv[4]);
 
 console.log("Reading history of repository", repositoryPath, "for", repositoryDays, "days");
 
@@ -30,8 +38,6 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
 
         var commitsList = gitParse.parseLogList(commitsLines);
 
-
-
         console.log("gitLog.logsOfPreviousDays", success, commitsList.length);
 
         dbPump.updateAll(repositoryUrl, commitsList, function (success, results, error) {
@@ -41,6 +47,7 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
             var tables = [
                 "git_author",
                 "git_repo",
+                "git_contributor",
                 "git_commit",
                 "git_tree",
                 "git_file",

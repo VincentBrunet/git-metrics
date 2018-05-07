@@ -25,7 +25,7 @@ $this.pumpRepository = function (repositoryUrl, next) {
     });;
 };
 
-$this.updateAuthors = function (commitsList, next) {
+$this.updateAuthors = function (repository, commitsList, next) {
     // Index all author names
     var authors = {};
     core.for(commitsList, function (idx, commit) {
@@ -42,8 +42,19 @@ $this.updateAuthors = function (commitsList, next) {
     dbController.inserts("git_author", authorsInserted, "insert or ignore", function (success, results, error) {
         // Get all authors with found names
         dbLookups.lookupAuthorsByNames(core.keys(authors), function (success, authorsByName, error) {
-            // Return authors by name
-            return next(success, authorsByName, error);
+            // Insert contributors
+            var contributorsInserted = [];
+            core.for(authorsByName, function (key, author) {
+                contributorsInserted.push({
+                    "git_repo_id": repository.id,
+                    "git_author_id": author.id,
+                });
+            });
+            // Inset all contributors
+            dbController.inserts("git_contributor", contributorsInserted, "insert or ignore", function (success, results, error) {
+                // Return authors by name
+                return next(success, authorsByName, error);
+            });
         });
     });
 };
@@ -305,7 +316,7 @@ $this.updateFilesRenames = function (repository, commitsByHash, commitsList, nex
     });
 };
 
-$this.updateChanges = function (repository, commitsByHash, commitsList, next) {
+$this.updateChanges = function (repository, authorsByName, commitsByHash, commitsList, next) {
     // Count files not found
     var notFoundFiles = 0;
     // List file changes paths found
@@ -327,6 +338,13 @@ $this.updateChanges = function (repository, commitsByHash, commitsList, next) {
                 console.log("Could not find parent commit", commit.hash);
                 return; // Continue loop
             }
+            // Lookup commit author
+            var author = authorsByName[commit.author];
+            // Could not find author for this commit
+            if (!author) {
+                console.log("Could not find author", commit.author);
+                return; // Continue loop
+            }
             // Loop over all commit changes
             core.for(commit.changes, function (idx, change) {
                 // Lookup file changed by path
@@ -345,6 +363,7 @@ $this.updateChanges = function (repository, commitsByHash, commitsList, next) {
                             insertedChanges.push({
                                 "git_repo_id": repository.id,
                                 "git_commit_id": parentCommit.id,
+                                "git_author_id": author.id,
                                 "git_file_id": file.id,
                                 "additions": change.additions,
                                 "deletions": change.deletions,
@@ -371,7 +390,7 @@ $this.updateAll = function (repositoryUrl, commitsList, next) {
 
         console.log("$this.pumpRepository", success, repository.id, error);
 
-        $this.updateAuthors(commitsList, function (success, authorsByName, error) {
+        $this.updateAuthors(repository, commitsList, function (success, authorsByName, error) {
 
             console.log("$this.updateAuthors", success, core.count(authorsByName), error);
 
@@ -395,7 +414,7 @@ $this.updateAll = function (repositoryUrl, commitsList, next) {
 
                                 console.log("$this.updateFilesRenames", success, results, error);
 
-                                $this.updateChanges(repository, commitsByHash, commitsList, function (success, results, error) {
+                                $this.updateChanges(repository, authorsByName, commitsByHash, commitsList, function (success, results, error) {
 
                                     console.log("$this.updateChanges", success, results, error);
 

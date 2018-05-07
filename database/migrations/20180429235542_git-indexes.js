@@ -10,6 +10,9 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.addIndex("git_repo", "id");
     $mg.addIndex("git_repo", "url");
 
+    $mg.addIndex("git_contributor", "git_repo_id");
+    $mg.addIndex("git_contributor", "git_author_id");
+
     $mg.addIndex("git_commit", "id");
     $mg.addIndex("git_commit", "git_repo_id");
     $mg.addIndex("git_commit", "git_author_id");
@@ -33,6 +36,7 @@ exports.up = $sugar.migration(function ($mg, knex) {
 
     $mg.addIndex("git_change", "git_repo_id");
     $mg.addIndex("git_change", "git_commit_id");
+    $mg.addIndex("git_change", "git_author_id");
     $mg.addIndex("git_change", "git_file_id");
 
 });
@@ -45,6 +49,9 @@ exports.down = $sugar.migration(function ($mg) {
 
     $mg.dropIndex("git_repo", "id");
     $mg.dropIndex("git_repo", "url");
+
+    $mg.dropIndex("git_contributor", "git_repo_id");
+    $mg.dropIndex("git_contributor", "git_author_id");
 
     $mg.dropIndex("git_commit", "id");
     $mg.dropIndex("git_commit", "git_repo_id");
@@ -69,6 +76,7 @@ exports.down = $sugar.migration(function ($mg) {
 
     $mg.dropIndex("git_change", "git_repo_id");
     $mg.dropIndex("git_change", "git_commit_id");
+    $mg.dropIndex("git_change", "git_author_id");
     $mg.dropIndex("git_change", "git_file_id");
 
 });
