@@ -12,10 +12,10 @@ $this.pumpRepository = function (repositoryUrl, next) {
         "url": repositoryUrl,
     };
     // Insert repository if not already there
-    dbController.inserts("git_repo", [repository], "insert or ignore", function (success, results, error) {
+    dbController.inserts("git_repo", [repository], "ignore", function (success, results, error) {
         // Repository could not update
         if (!success) {
-            console.log("Repository update error", success, results, error);
+            return next(false, undefined, error);
         }
         // Fetch existing repository infos
         dbLookups.lookupRepositoryByUrl(repositoryUrl, function (success, repository, error) {
@@ -39,9 +39,17 @@ $this.updateAuthors = function (repository, commitsList, next) {
         });
     });
     // Insert all authors, or ignore if already there
-    dbController.inserts("git_author", authorsInserted, "insert or ignore", function (success, results, error) {
+    dbController.inserts("git_author", authorsInserted, "ignore", function (success, results, error) {
+        // Authors coult not update
+        if (!success) {
+            return next(false, undefined, error);
+        }
         // Get all authors with found names
         dbLookups.lookupAuthorsByNames(core.keys(authors), function (success, authorsByName, error) {
+            // Coult not lookup authors
+            if (!success) {
+                return next(false, undefined, error);
+            }
             // Insert contributors
             var contributorsInserted = [];
             core.for(authorsByName, function (key, author) {
@@ -51,7 +59,7 @@ $this.updateAuthors = function (repository, commitsList, next) {
                 });
             });
             // Inset all contributors
-            dbController.inserts("git_contributor", contributorsInserted, "insert or ignore", function (success, results, error) {
+            dbController.inserts("git_contributor", contributorsInserted, "ignore", function (success, results, error) {
                 // Return authors by name
                 return next(success, authorsByName, error);
             });
@@ -82,11 +90,15 @@ $this.updateCommits = function (repository, authorsByName, commitsList, next) {
             "parents": commit.parents.length,
             "hash": commit.hash,
             "comment": commit.comment.join("\n"),
-            "time": commit.date.valueOf(),
+            "time": commit.date.format(),
         });
     });
     // Insert all commits found (only if not already inserted)
-    dbController.inserts("git_commit", commitsInserted, "insert or ignore", function (success, results, error) {
+    dbController.inserts("git_commit", commitsInserted, "ignore", function (success, results, error) {
+        // If failed to insert commits
+        if (!success) {
+            return next(false, undefined, error);
+        }
         // Lookup all commits matching found hashes
         dbLookups.lookupCommitsByHash(repository.id, commitsHashes, function (success, commitsByHash, error) {
             // Return commits by hash
@@ -127,7 +139,7 @@ $this.updateTree = function (repository, commitsByHash, commitsList, next) {
         });
     });
     // Insert all found parenting relations
-    dbController.inserts("git_tree", treesInserted, "insert or ignore", function (success, results, error) {
+    dbController.inserts("git_tree", treesInserted, "ignore", function (success, results, error) {
         // Done
         return next(success, -notFoundCommits, error);
     });
@@ -164,7 +176,7 @@ $this.updateFilesInsertions = function (repository, commitsByHash, commitsList, 
         });
     });
     // Insert all found files
-    dbController.inserts("git_file", filesInserted, "insert or ignore", function (success, results, error) {
+    dbController.inserts("git_file", filesInserted, "ignore", function (success, results, error) {
         // Done
         return next(success, results, error);
     });
@@ -309,7 +321,7 @@ $this.updateFilesRenames = function (repository, commitsByHash, commitsList, nex
             });
         });
         // Insert all rename previously found
-        dbController.inserts("git_rename", renamesInserted, "insert or ignore", function (success, results, error) {
+        dbController.inserts("git_rename", renamesInserted, "ignore", function (success, results, error) {
             // Done
             return next(success, -notFoundFiles, error);
         });
@@ -376,7 +388,7 @@ $this.updateChanges = function (repository, authorsByName, commitsByHash, commit
             });
         });
         // Do insert all changes (ignore already inserted ones)
-        dbController.inserts("git_change", insertedChanges, "insert or ignore", function (success, results, error) {
+        dbController.inserts("git_change", insertedChanges, "ignore", function (success, results, error) {
             return next(success, -notFoundFiles, error);
         });
     });
@@ -387,6 +399,10 @@ $this.updateAll = function (repositoryUrl, commitsList, next) {
     console.log("$this.updateAll", repositoryUrl, commitsList.length);
 
     $this.pumpRepository(repositoryUrl, function (success, repository, error) {
+
+        if (!success) {
+            return next(false, undefined, error);
+        }
 
         console.log("$this.pumpRepository", success, repository.id, error);
 

@@ -5,13 +5,13 @@ var $sugar = require("../sugars");
 exports.up = $sugar.migration(function ($mg, knex) {
     $mg.createTable("git_author", function (table) {
         // Author properties
-        $mg.addColumn(table, "name", "string");
+        $mg.addColumn(table, "name", "text");
         // No author with same name
         $mg.addUnique(table, "name");
     });
     $mg.createTable("git_repo", function (table) {
         // Repository properties
-        $mg.addColumn(table, "url", "string");
+        $mg.addColumn(table, "url", "text");
         // No repo with same url
         $mg.addUnique(table, "url");
     });
@@ -32,8 +32,8 @@ exports.up = $sugar.migration(function ($mg, knex) {
         $mg.addForeignLink(table, "git_author_id", "git_author.id");
         // Commit properties
         $mg.addColumn(table, "parents", "integer");
-        $mg.addColumn(table, "hash", "string");
-        $mg.addColumn(table, "comment", "string");
+        $mg.addColumn(table, "hash", "text");
+        $mg.addColumn(table, "comment", "text");
         $mg.addColumn(table, "time", "timestamp");
         // No commit with same hash (and repo)
         $mg.addUnique(table, ["git_repo_id", "hash"]);
@@ -58,7 +58,7 @@ exports.up = $sugar.migration(function ($mg, knex) {
         $mg.addColumn(table, "del_git_commit_id", "integer", undefined, true);
         $mg.addForeignLink(table, "del_git_commit_id", "git_commit.id");
         // File property
-        $mg.addColumn(table, "path", "string");
+        $mg.addColumn(table, "path", "text");
         // No file with same commit and path (and repo)
         $mg.addUnique(table, ["git_repo_id", "add_git_commit_id", "path"]);
     });
@@ -97,12 +97,12 @@ exports.up = $sugar.migration(function ($mg, knex) {
 
 // Rollback migrations
 exports.down = $sugar.migration(function ($mg) {
-  $mg.dropTable("git_author");
-  $mg.dropTable("git_repo");
-  $mg.dropTable("git_contributor");
-  $mg.dropTable("git_commit");
-  $mg.dropTable("git_tree");
-  $mg.dropTable("git_file");
-  $mg.dropTable("git_rename");
-  $mg.dropTable("git_change");
+    $mg.dropTable("git_change");
+    $mg.dropTable("git_rename");
+    $mg.dropTable("git_file");
+    $mg.dropTable("git_tree");
+    $mg.dropTable("git_commit");
+    $mg.dropTable("git_contributor");
+    $mg.dropTable("git_repo");
+    $mg.dropTable("git_author");
 });

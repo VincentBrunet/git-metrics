@@ -1,12 +1,26 @@
 
 var core = require("../core");
 
+/*
 var database = require('knex')({
     client: 'sqlite3',
     connection: {
         filename: "./database/dev.sqlite3",
     },
 });
+*/
+var database = require('knex')({
+    client: 'pg',
+    version: '7.2',
+    connection: {
+        host: '127.0.0.1',
+        user: 'leo',
+        port: 5433, 
+        password: '',
+        database: 'git-metrics'
+    },
+});
+
 database.on('query', function (queryData) {
     /*
     var uid = queryData.__knexUid;
@@ -54,7 +68,7 @@ $local._query = function (tableName) {
         var startTime = core.moment();
         self._internal.then(function (datas) {
             var execTime = core.moment().diff(startTime, "ms");
-            if (execTime > 500) {
+            if (execTime > 100) {
                 console.log("Query:", self._internal._method, tableName, execTime + "ms");
             }
             var rows = datas;
@@ -70,7 +84,7 @@ $local._query = function (tableName) {
                 console.log("Error while processing query results", error);
             }
         }).catch(function (error) {
-            console.log("Error while processing query", error);
+            //console.log("Error while processing query", error);
             if (next) {
                 return next(false, null, error);
             }
@@ -94,8 +108,17 @@ $this.rawQuery = function (str) {
 };
 
 $this.explain = function (query, next) {
-    var query = $this.rawQuery("EXPLAIN QUERY PLAN " + query.toString());
-    query.execute(next);
+    var clientType = database.client.config.client;
+    var isPostgres = clientType == "pg";
+    var isSqlite = clientType == "sqlite3";
+    if (isSqlite) {
+        var query = $this.rawQuery("EXPLAIN QUERY PLAN " + query.toString());
+        query.execute(next);
+    }
+    if (isPostgres) {
+        var query = $this.rawQuery("EXPLAIN  " + query.toString());
+        query.execute(next);
+    }
 };
 
 $this.parallel = function (queries, next) {
@@ -188,19 +211,37 @@ $this.batch = function (datas, queryGenerator) {
     return queries;
 };
 
-$this.inserts = function (tableName, tableRows, insertCondition, next) {
+$this.inserts = function (tableName, tableRows, conflictCondition, next) {
     // Batch changes insertions
     var batch = $this.batch(tableRows, function (chunk) {
         var query = $this.query(tableName);
         query.insert(chunk);
-        if (insertCondition == "ignore") {
-            insertCondition = "insert or ignore";
+        var clientType = database.client.config.client;
+        var isPostgres = clientType == "pg";
+        var isSqlite = clientType == "sqlite3";
+        if (conflictCondition == "ignore") {
+            if (isSqlite) {
+                conflictCondition = "insert or ignore";
+            }
+            if (isPostgres) {
+                conflictCondition = " ON CONFLICT DO NOTHING";
+            }
         }
-        if (insertCondition == "replace") {
-            insertCondition = "insert or replace";
+        if (conflictCondition == "replace") {
+            if (isSqlite) {
+                conflictCondition = "insert or replace";
+            }
+            if (isPostgres) {
+                conflictCondition = " ON CONFLICT DO UPDATE";
+            }
         }
-        if (insertCondition) {
-            return $this.rawQuery(insertCondition + query.toString().substring(6));
+        if (conflictCondition) {
+            if (isSqlite) {
+                return $this.rawQuery(conflictCondition + query.toString().substring(6));
+            }
+            if (isPostgres) {
+                return $this.rawQuery(query.toString() + conflictCondition);
+            }
         }
         return query;
     });

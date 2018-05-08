@@ -124,6 +124,29 @@ $this.path = function (path) {
     return path;
 };
 
+$this.sub = function (collection, idx, length) {
+    var isArray = $this.isArray(collection);
+    var results = {};
+    if (isArray) {
+        results = [];
+    }
+    var minIdx = idx;
+    var maxIdx = idx + length;
+    var i = 0;
+    $this.for(collection, function (key, value) {
+        if (i >= minIdx && i < maxIdx) {
+            if (isArray) {
+                results.push(value);
+            }
+            else {
+                results[key] = value;
+            }
+        }
+        i++;
+    });
+    return results;
+};
+
 $this.functions = _.functions;
 $this.values = _.values;
 $this.keys = _.keys;

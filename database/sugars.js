@@ -21,7 +21,7 @@ $sugars.Operations = function (knex, Promise) {
       if (optionalNext) {
         optionalNext(table);
       }
-      table.timestamp("created_time").defaultTo(knex.fn.now());
+      table.timestamp("created_time").defaultTo(knex.fn.now()).notNullable();
     }));
   };
 

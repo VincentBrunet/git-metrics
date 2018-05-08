@@ -44,6 +44,10 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
 
             console.log("dbPump.updateAll", success, results, error);
 
+            if (!success) {
+                return;
+            }
+
             var tables = [
                 "git_author",
                 "git_repo",
@@ -62,7 +66,7 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
             });
             dbController.parallel(queries, function (success, results, error) {
                 core.for(results, function (key, result) {
-                    console.log("Table Content:", key, result.datas[0]["count(*)"]);
+                    console.log("Table Content:", key, result.datas[0]);
                 });
             });
 
