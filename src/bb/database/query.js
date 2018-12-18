@@ -1,24 +1,19 @@
 
-var _ = require("lodash");
+var thisNative = require("./_native");
 
-var database = require('knex')({
-    client: 'sqlite3',
-    connection: {
-        filename: "./database/dev.sqlite3",
-    },
-});
+var _ = require("lodash");
 
 function Query(tableName) {
     // Locally accessible object
     var self = this;
     // Use the specified object
-    self._internal = database;
+    self._internal = thisNative;
     // If the user specified a table name to query
     if (tableName !== undefined) {
         self._internal = self._internal(tableName);
     }
     // Copy the knex functionalities
-    var methods = core.functions(database);
+    var methods = _.functions(thisNative);
     _.each(methods, function (method) {
         // Chained method dont need to be chained anymore
         self[method] = function () {
@@ -39,8 +34,8 @@ function Query(tableName) {
         return self.select(columns);
     };
     // Raw sql string
-    self.toString = function (a) {
-        return self._internal.toString(a);
+    self.SQL = function () {
+        return self._internal.toString();
     };
 };
 

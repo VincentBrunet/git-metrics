@@ -20,7 +20,7 @@ var repositoryDays = parseInt(process.argv[4]);
 
 $this = {};
 
-$this.commits = async function (path, days) {
+$this.run = async function (path, days) {
     console.log("Reading history of repository", path, "for", days, "days");
     var reporitoryUrl = await gitRepo.currentRepo(path);
     console.log("gitRepo.currentRepo", reporitoryUrl);
@@ -29,7 +29,11 @@ $this.commits = async function (path, days) {
     var commitsList = gitParse.parseLogList(commitsLines);
     console.log("gitLog.parseLogList", commitsList.length);
 
-    console.log("END", commitsList);
+    console.log("PUMP", commitsList);
+
+    var results = await dbPump.all(reporitoryUrl, commitsList);
+
+    console.log("END", results);
 }
 
 /*
@@ -40,7 +44,7 @@ fs.writeFile(debugFile, commitsLines.join("\n"), function(err) {
 });
 */
 
-$this.commits(repositoryPath, repositoryDays);
+$this.run(repositoryPath, repositoryDays);
 
 /*
         dbPump.updateAll(repositoryUrl, commitsList, function (success, results, error) {

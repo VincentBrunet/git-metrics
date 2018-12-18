@@ -136,7 +136,7 @@ $this.parseLogList = function (commitsLines, logs) {
             // Date line
             if (line.startsWith("Date:")) {
                 var dateLine = line.split("Date:");
-                commitData.date = core.moment(dateLine[1].trim());
+                commitData.date = bb.moment(dateLine[1].trim());
                 continue;
             }
             // Empty line
@@ -177,8 +177,8 @@ $this.parseLogList = function (commitsLines, logs) {
                     // If we have a rename
                     if (filePaths.length > 1) {
                         var renameData = {
-                            before: core.path(filePaths[0]),
-                            after: core.path(filePaths[1]),
+                            before: bb.string.path.relative(filePaths[0]),
+                            after: bb.string.path.relative(filePaths[1]),
                         };
                         commitData.renames.push(renameData);
                     }
@@ -196,7 +196,7 @@ $this.parseLogList = function (commitsLines, logs) {
                     }
                     // Save data
                     commitData.changes.push({
-                        path: core.path(filePaths[0]),
+                        path: bb.string.path.relative(filePaths[0]),
                         additions: addCount,
                         deletions: delCount,
                         total: addCount + delCount,
