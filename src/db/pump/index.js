@@ -7,6 +7,7 @@ module.exports = {
     filesDeletions: require("./filesDeletions"),
     filesInsertions: require("./filesInsertions"),
     filesRenames: require("./filesRenames"),
+    refs: require("./refs"),
     repository: require("./repository"),
     tree: require("./tree"),
 };

@@ -3,7 +3,7 @@ var lookup = require("../lookup");
 
 var bb = require("../../bb");
 
-module.exports = function (repository, authorsByName, commitsList) {
+module.exports = async function (repository, authorsBySignatures, commitsList) {
     // List all commits hash
     var commitsHashes = [];
     bb.flow.for(commitsList, function (idx, commit) {
@@ -13,7 +13,7 @@ module.exports = function (repository, authorsByName, commitsList) {
     var commitsInserted = [];
     bb.flow.for(commitsList, function (idx, commit) {
         // Lookup commit author
-        var author = authorsByName[commit.author];
+        var author = authorsBySignatures[commit.author.signature];
         // Could not find author for this commit
         if (!author) {
             console.log("Could not find author", commit.author);
@@ -23,10 +23,12 @@ module.exports = function (repository, authorsByName, commitsList) {
         commitsInserted.push({
             "git_repo_id": repository.id,
             "git_author_id": author.id,
+            "refs": commit.refs.length,
             "parents": commit.parents.length,
             "hash": commit.hash,
             "comment": commit.comment.join("\n"),
             "time": commit.date.format(),
+            "raw": commit.raw.join("\n"),
         });
     });
     // Insert all commits found (only if not already inserted)

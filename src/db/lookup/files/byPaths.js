@@ -21,7 +21,7 @@ module.exports = async function (repositoryId, filesPaths) {
     var files = await bb.database.execute(batch);
     // Index files by path
     var filesByPath = {};
-    core.for(files, function (idx, file) {
+    bb.flow.for(files, function (idx, file) {
         var filesList = filesByPath[file.path] || [];
         filesList.push(file);
         filesByPath[file.path] = filesList;
@@ -29,5 +29,3 @@ module.exports = async function (repositoryId, filesPaths) {
     // Done, transfer files indexed by path
     return filesByPath;
 };
-
-module.exports = $this;

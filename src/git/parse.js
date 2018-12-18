@@ -62,7 +62,7 @@ $this.parseLogList = function (commitsLines, logs) {
     // Final result of commit data
     var commitsData = [];
     // Take raw logs and split into commits and commit lines
-    var commitsBlocks = bb.collection.array.chunks(commitsLines, function (idx, line) {
+    var commitsBlocks = bb.array.chunks(commitsLines, function (idx, line) {
         return line.startsWith("commit ");
     });
     // For every commits
@@ -83,6 +83,7 @@ $this.parseLogList = function (commitsLines, logs) {
             hash: null,
             date: null,
             author: {
+                signature: null,
                 name: null,
                 email: null,
             },
@@ -128,6 +129,7 @@ $this.parseLogList = function (commitsLines, logs) {
             }
             // Author line
             if (line.startsWith("Author:")) {
+                commitData.author.signature = line.split("Author:")[1].trim();
                 var authorLine = line.split("<");
                 commitData.author.name = authorLine[0].split("Author:")[1].trim();
                 commitData.author.email = authorLine[1].split(">")[0];
@@ -210,7 +212,7 @@ $this.parseLogList = function (commitsLines, logs) {
         commitsData.push(commitData);
     }
     // Sort commits by date
-    commitsData = core.sortBy(commitsData, "date");
+    commitsData = bb.array.sortBy(commitsData, "date");
     // Done
     return commitsData;
 };

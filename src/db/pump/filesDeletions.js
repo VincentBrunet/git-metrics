@@ -17,7 +17,7 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         });
     });
     // Lookup all files deleteds
-    var filesByPaths = await lookup.files.byPaths(repository.id, bb.dict.keys(commitsFilesDeletions);
+    var filesByPaths = await lookup.files.byPaths(repository.id, bb.dict.keys(commitsFilesDeletions));
     // List file updates to be applied
     var filesDeletedByCommitId = {};
     bb.flow.for(commitsList, function (idx, commit) {

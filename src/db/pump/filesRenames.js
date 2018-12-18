@@ -15,7 +15,7 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         });
     });
     // Lookup all files renamed
-    var filesByPath = lookup.files.byPath(repository.id, bb.dict.keys(filesRenamesPaths));
+    var filesByPath = lookup.files.byPaths(repository.id, bb.dict.keys(filesRenamesPaths));
     // List all rename instances to be created
     var renamesInserted = [];
     bb.flow.for(commitsList, function (idx, commit) {

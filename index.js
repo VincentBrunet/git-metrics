@@ -21,19 +21,24 @@ var repositoryDays = parseInt(process.argv[4]);
 $this = {};
 
 $this.run = async function (path, days) {
-    console.log("Reading history of repository", path, "for", days, "days");
-    var reporitoryUrl = await gitRepo.currentRepo(path);
-    console.log("gitRepo.currentRepo", reporitoryUrl);
-    var commitsLines = await gitLog.logsPreviousDays(path, days);
-    console.log("gitLog.logsPreviousDays", commitsLines.length);
-    var commitsList = gitParse.parseLogList(commitsLines);
-    console.log("gitLog.parseLogList", commitsList.length);
+    try {
+        console.log("Reading history of repository", path, "for", days, "days");
+        var reporitoryUrl = await gitRepo.currentRepo(path);
+        console.log("gitRepo.currentRepo", reporitoryUrl);
+        var commitsLines = await gitLog.logsPreviousDays(path, days);
+        console.log("gitLog.logsPreviousDays", commitsLines.length);
+        var commitsList = gitParse.parseLogList(commitsLines);
+        console.log("gitLog.parseLogList", commitsList.length);
 
-    console.log("PUMP", commitsList);
+        //console.log("PUMP", commitsList);
 
-    var results = await dbPump.all(reporitoryUrl, commitsList);
+        var results = await dbPump.all(reporitoryUrl, commitsList);
 
-    console.log("END", results);
+        console.log("END", results);
+    }
+    catch (error) {
+        console.log("ERROR", error);
+    }
 }
 
 /*

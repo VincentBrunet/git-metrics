@@ -1,5 +1,5 @@
 
-var flowFor = require("../../flow/for");
+var flowFor = require("../flow/for");
 
 module.exports = function (array, chunkPredicate) {
     var currentChunk = [];

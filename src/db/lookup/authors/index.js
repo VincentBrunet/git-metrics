@@ -1,4 +1,4 @@
 
 module.exports = {
-    byNames: require("./byNames"),
+    bySignatures: require("./bySignatures"),
 };

@@ -1,13 +1,15 @@
 
 var thisNative = require("./_native");
 
+var thisQuery = require("./query");
 var thisBatch = require("./batch");
 var thisExecute = require("./execute");
 
 module.exports = async function (tableName, tableRows, conflictCondition) {
     // Batch insertions
-    var batch = thisBatch(tableName, tableRows, function (query, chunk) {
-        query.insert(chunk);
+    var batch = thisBatch(undefined, tableRows, function (query, chunk) {
+        var referenceQuery = thisQuery(tableName);
+        referenceQuery.insert(chunk);
         var clientType = thisNative.client.config.client;
         var isPostgres = clientType == "pg";
         var isSqlite = clientType == "sqlite3";
@@ -29,12 +31,16 @@ module.exports = async function (tableName, tableRows, conflictCondition) {
         }
         if (conflictCondition) {
             if (isSqlite) {
-                return query.raw(conflictCondition + query.SQL().substring(6));
+                query.raw(conflictCondition + referenceQuery.SQL().substring(6));
+                return;
             }
             if (isPostgres) {
-                return query.raw(query.SQL() + conflictCondition);
+                query.raw(referenceQuery.SQL() + conflictCondition);
+                return;
             }
         }
+        query.raw(referenceQuery.SQL());
+        return;
     });
     // Execute
     return await thisExecute(batch);

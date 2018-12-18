@@ -1,6 +1,4 @@
 
-var core = require("../core");
-
 var bb = require("../bb");
 
 var $local =  {};
@@ -30,20 +28,20 @@ var $this = {};
 $this.logsPreviousDays = async function (repository, days) {
     // Initial setup
     var lines = [];
-    var now = core.moment();
+    var now = bb.moment();
     // Work splitting
     var blockDays = 7;
     var blockCount = Math.ceil(days / blockDays);
     // Loop for each period
     for (var i = 0; i < blockCount; i++) {
         // Limit dates
-        var blockMaxDate = core.moment(now).subtract(i * blockDays, 'days');
-        var blockMinDate = core.moment(now).subtract((i + 1) * blockDays, 'days');
+        var blockMaxDate = bb.moment(now).subtract(i * blockDays, 'days');
+        var blockMinDate = bb.moment(now).subtract((i + 1) * blockDays, 'days');
         // Wait for logs
         var blockLogs = await $local.logsForTimePeriod(repository, blockMaxDate, blockMinDate);
         // Add result to list of logs
         var blockLines = bb.string.lines(blockLogs);
-        bb.collection.array.appendArray(lines, blockLines);
+        bb.array.appendArray(lines, blockLines);
     }
     // Done
     return lines;

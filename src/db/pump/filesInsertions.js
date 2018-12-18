@@ -34,5 +34,5 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         });
     });
     // Insert all found files
-    return await bb.databadse.insert("git_file", filesInserted, "ignore");
+    return await bb.database.insert("git_file", filesInserted, "ignore");
 };

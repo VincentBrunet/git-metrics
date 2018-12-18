@@ -3,7 +3,7 @@ var lookup = require("../lookup");
 
 var bb = require("../../bb");
 
-module.exports = async function (repository, authorsByName, commitsByHash, commitsList) {
+module.exports = async function (repository, authorsBySignatures, commitsByHash, commitsList) {
     // Count files not found
     var notFoundFiles = 0;
     // List file changes paths found
@@ -14,7 +14,7 @@ module.exports = async function (repository, authorsByName, commitsByHash, commi
         });
     });
     // Lookup all files changed
-    var filesByPath = await lookup.files.byPath(repository.id, bb.dict.keys(commitsChangesPaths));
+    var filesByPath = await lookup.files.byPaths(repository.id, bb.dict.keys(commitsChangesPaths));
     // List changes to be applied to different paths
     var insertedChanges = [];
     bb.flow.for(commitsList, function (idx, commit) {
@@ -26,7 +26,7 @@ module.exports = async function (repository, authorsByName, commitsByHash, commi
             return; // Continue loop
         }
         // Lookup commit author
-        var author = authorsByName[commit.author];
+        var author = authorsBySignatures[commit.author.signature];
         // Could not find author for this commit
         if (!author) {
             console.log("Could not find author", commit.author);

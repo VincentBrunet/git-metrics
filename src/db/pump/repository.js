@@ -13,5 +13,5 @@ module.exports = async function (repositoryUrl) {
     // Fetch existing repository infos
     var repository = await lookup.repository.byUrl(repositoryUrl);
     // Done
-    return repositoryl;
+    return repository;
 };

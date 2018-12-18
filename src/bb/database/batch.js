@@ -15,7 +15,7 @@ module.exports = function (tableName, datas, queryGenerator) {
     flowFor(chunks, function (idx, chunk) {
         var query = thisQuery(tableName);
         if (queryGenerator) {
-            queryGenerator(chunk);
+            queryGenerator(query, chunk);
         }
         queries.push(query);
     });

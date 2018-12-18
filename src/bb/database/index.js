@@ -4,5 +4,5 @@ module.exports = {
     execute: require("./execute"),
     insert: require("./insert"),
     query: require("./query"),
-    raw: require("./raw"),
+    update: require("./update"),
 };
