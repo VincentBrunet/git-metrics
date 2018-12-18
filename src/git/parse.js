@@ -1,9 +1,11 @@
 
 var core = require("../core");
 
-var $this = {};
+var bb = require("../bb");
 
-$this.isCommitHash = function (string) {
+var $local = {};
+
+$local.isCommitHash = function (string) {
     // Hash is 40 character
     if (string.length != 40) {
         return false;
@@ -25,7 +27,7 @@ $this.isCommitHash = function (string) {
     return true;
 };
 
-$this.parseFilePaths = function (filePath) {
+$local.parseFilePaths = function (filePath) {
     // Check if path contains renaming pattern
     var renameRegex1 = /({.* => .*})/gi;
     var renameCheck1 = filePath.match(renameRegex1);
@@ -54,32 +56,15 @@ $this.parseFilePaths = function (filePath) {
     return [filePath];
 };
 
+var $this = {};
+
 $this.parseLogList = function (commitsLines, logs) {
-    // Take raw logs and split into commits and commit lines
+    // Final result of commit data
     var commitsData = [];
-    var commitsBlocks = [];
-    var currentCommitLines = null;
-    // For every log line
-    for (var i = 0; i < commitsLines.length; i++) {
-        // Current log line
-        var currentLine = commitsLines[i];
-        // If we have a new commit
-        if (currentLine.startsWith("commit ")) {
-            // Save and reset current commit
-            if (currentCommitLines) {
-                commitsBlocks.push(currentCommitLines);
-            }
-            currentCommitLines = [];
-        }
-        // If its a normal line, continue saving line
-        if (currentCommitLines) {
-            currentCommitLines.push(currentLine);
-        }
-    }
-    // Add final block
-    if (currentCommitLines && currentCommitLines.length > 0) {
-        commitsBlocks.push(currentCommitLines);
-    }
+    // Take raw logs and split into commits and commit lines
+    var commitsBlocks = bb.collection.array.chunks(commitsLines, function (idx, line) {
+        return line.startsWith("commit ");
+    });
     // For every commits
     for (var i = 0; i < commitsBlocks.length; i++) {
         // Get lines of commit
@@ -90,15 +75,24 @@ $this.parseLogList = function (commitsLines, logs) {
         }
         // Commit datas
         var commitData = {
+            // Linkage
             parents: [],
+            refs: [],
+            source: "",
+            // Commit header
             hash: null,
-            author: null,
             date: null,
+            author: {
+                name: null,
+                email: null,
+            },
+            // Commit contents
             comment: [],
             additions: [],
             deletions: [],
             renames: [],
             changes: [],
+            // Misc
             raw: lines,
         };
         // Parsing states
@@ -110,21 +104,33 @@ $this.parseLogList = function (commitsLines, logs) {
             var line = lines[j];
             // Commit hash line
             if (line.startsWith("commit ")) {
-                var commitLine = line.split(" ");
-                commitData.hash = commitLine[1].trim();
-                core.for(commitLine, function (idx, part) {
+                var commitLineParts = line.split("\t");
+                // Parse hashes and parents
+                var commitLineHashes = commitLineParts[0].split(" ");
+                commitData.hash = commitLineHashes[1].trim();
+                bb.flow.for(commitLineHashes, function (idx, part) {
                     if (idx > 1) {
-                        if ($this.isCommitHash(part)) {
+                        if ($local.isCommitHash(part)) {
                             commitData.parents.push(part);
                         }
                     }
                 });
+                // Parse source and refs
+                var commitLineRefsParts = commitLineParts[1].split("(");
+                commitData.source = commitLineRefsParts[0].trim();
+                if (commitLineRefsParts.length > 1) {
+                    var commitLineRefs = commitLineRefsParts[1].split(")")[0].split(", ");
+                    bb.flow.for(commitLineRefs, function (idx, ref) {
+                        commitData.refs.push(ref.trim());
+                    });
+                }
                 continue;
             }
             // Author line
             if (line.startsWith("Author:")) {
                 var authorLine = line.split("<");
-                commitData.author = authorLine[authorLine.length - 1].replace(">", "");
+                commitData.author.name = authorLine[0].split("Author:")[1].trim();
+                commitData.author.email = authorLine[1].split(">")[0];
                 continue;
             }
             // Date line
@@ -154,20 +160,20 @@ $this.parseLogList = function (commitsLines, logs) {
                 // If its a file creation event
                 if (line.startsWith(" create mode")) {
                     var filePath = line.substring(20);
-                    commitData.additions.push(core.path(filePath));
+                    commitData.additions.push(bb.string.path.relative(filePath));
                     continue;
                 }
                 // If its a file deletion event
                 if (line.startsWith(" delete mode")) {
                     var filePath = line.substring(20);
-                    commitData.deletions.push(core.path(filePath));
+                    commitData.deletions.push(bb.string.path.relative(filePath));
                     continue;
                 }
                 // If its a file change line
                 var fileLine = line.split("\t");
                 if (fileLine.length >= 3) {
                     // Parse file path
-                    var filePaths = $this.parseFilePaths(fileLine[2].trim());
+                    var filePaths = $local.parseFilePaths(fileLine[2].trim());
                     // If we have a rename
                     if (filePaths.length > 1) {
                         var renameData = {

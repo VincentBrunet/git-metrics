@@ -1,6 +1,4 @@
 
-var core = require("./src/core");
-
 var gitRepo = require("./src/git/repo");
 var gitLog = require("./src/git/log");
 var gitParse = require("./src/git/parse");
@@ -20,26 +18,31 @@ if (commandType == "API") {
 var repositoryPath = process.argv[3];
 var repositoryDays = parseInt(process.argv[4]);
 
-console.log("Reading history of repository", repositoryPath, "for", repositoryDays, "days");
+$this = {};
 
-gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
+$this.commits = async function (path, days) {
+    console.log("Reading history of repository", path, "for", days, "days");
+    var reporitoryUrl = await gitRepo.currentRepo(path);
+    console.log("gitRepo.currentRepo", reporitoryUrl);
+    var commitsLines = await gitLog.logsPreviousDays(path, days);
+    console.log("gitLog.logsPreviousDays", commitsLines.length);
+    var commitsList = gitParse.parseLogList(commitsLines);
+    console.log("gitLog.parseLogList", commitsList.length);
 
-    console.log("gitRepo.currentRepo", repositoryUrl);
+    console.log("END", commitsList);
+}
 
-    gitLog.logsOfPreviousDays(repositoryPath, repositoryDays, function (success, commitsLines, error) {
+/*
+var debugFile = "./git_logs.debug";
+var fs = require('fs');
+fs.writeFile(debugFile, commitsLines.join("\n"), function(err) {
+    console.log("The file was saved!", debugFile);
+});
+*/
 
-        /*
-        var debugFile = "./git_logs.debug";
-        var fs = require('fs');
-        fs.writeFile(debugFile, commitsLines.join("\n"), function(err) {
-            console.log("The file was saved!", debugFile);
-        });
-        */
+$this.commits(repositoryPath, repositoryDays);
 
-        var commitsList = gitParse.parseLogList(commitsLines);
-
-        console.log("gitLog.logsOfPreviousDays", success, commitsList.length);
-
+/*
         dbPump.updateAll(repositoryUrl, commitsList, function (success, results, error) {
 
             console.log("dbPump.updateAll", success, results, error);
@@ -59,13 +62,13 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
                 "git_change",
             ];
             var queries = {};
-            core.for(tables, function (idx, tableName) {
+            bb.flow.for(tables, function (idx, tableName) {
                 var query = dbController.query(tableName);
                 query.count();
                 queries[tableName] = query;
             });
             dbController.parallel(queries, function (success, results, error) {
-                core.for(results, function (key, result) {
+                bb.flow.for(results, function (key, result) {
                     console.log("Table Content:", key, result.datas[0]);
                 });
             });
@@ -85,3 +88,4 @@ gitRepo.currentRepo(repositoryPath, function (success, repositoryUrl, error) {
     });
 
 });
+*/

@@ -6,6 +6,7 @@ exports.up = $sugar.migration(function ($mg, knex) {
 
     $mg.addIndex("git_author", "id");
     $mg.addIndex("git_author", "name");
+    $mg.addIndex("git_author", "email");
 
     $mg.addIndex("git_repo", "id");
     $mg.addIndex("git_repo", "url");

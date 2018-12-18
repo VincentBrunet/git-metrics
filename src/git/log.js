@@ -1,57 +1,52 @@
 
-var child_process = require('child_process');
-
 var core = require("../core");
 
-var gitParse = require("./parse");
+var bb = require("../bb");
 
-var $this = {};
+var $local =  {};
 
-$this.logOnPeriod = function (repository, maxDate, minDate, next) {
+$local.logsForTimePeriod = async function (repository, maxDate, minDate) {
+    // Base command
+    var command = "git log --numstat --full-history --parents --no-color --summary --all --date=iso --source --decorate=short";
+    // Add date limits
     var dateFormat = 'MMMM DD YYYY HH:mm:ss ZZ';
-    var command = "git log --numstat --full-history --parents --no-color --summary --date=iso";
     command += " --until=\"" + maxDate.format(dateFormat) + "\"";
     command += " --since=\"" + minDate.format(dateFormat) + "\"";
+    // Make sure enough memory is allocated, and that it runs in repo folder
     var options = {
         cwd: repository,
         maxBuffer: 1024 * 1024 * 1024, // 1 Gb max output
     };
-    console.log("Reading commits\t from:", maxDate.format("LL"), "\t to:", minDate.format("LL"));
-    child_process.exec(command, options, function callback(error, stdout, stderr) {
-        if (error == null) {
-            return next(true, stdout, null);
-        }
-        else {
-            return next(false, null, error);
-        }
-    });
+    // Actual run the process
+    var result = await bb.process.run(command, options);
+    // Log
+    console.log("Reading commits\t from:", maxDate.format("LL"), "\t to:", minDate.format("LL"), "\t->", result.stdout.length / 1024, "KB");
+    // Only care about stdout
+    return result.stdout;
 };
 
-$this.logEachPastDays = function (repository, maxDate, pastDays, pastLines, next) {
-    if (pastDays <= 0 || pastDays == null || pastDays == undefined) {
-        return next(true, pastLines);
-    }
-    var daysLogged = Math.min(pastDays, 7);
-    var minDate = core.moment(maxDate).subtract(daysLogged, 'days');
-    $this.logOnPeriod(repository, maxDate, minDate, function (success, result, error) {
-        if (!success) {
-            return next(false, pastLines, error);
-        }
-        else {
-            var allLines = result.split(/\r?\n/);
-            core.for(allLines, function (idx, line) {
-                pastLines.push(line);
-            });
-            return $this.logEachPastDays(repository, minDate, pastDays - daysLogged, pastLines, next);
-        }
-    });
-};
+var $this = {};
 
-$this.logsOfPreviousDays = function (repository, days, next) {
+$this.logsPreviousDays = async function (repository, days) {
+    // Initial setup
+    var lines = [];
     var now = core.moment();
-    $this.logEachPastDays(repository, now, days, [], function (success, commitsLines, error) {
-        return next(success, commitsLines, error);
-    });
+    // Work splitting
+    var blockDays = 7;
+    var blockCount = Math.ceil(days / blockDays);
+    // Loop for each period
+    for (var i = 0; i < blockCount; i++) {
+        // Limit dates
+        var blockMaxDate = core.moment(now).subtract(i * blockDays, 'days');
+        var blockMinDate = core.moment(now).subtract((i + 1) * blockDays, 'days');
+        // Wait for logs
+        var blockLogs = await $local.logsForTimePeriod(repository, blockMaxDate, blockMinDate);
+        // Add result to list of logs
+        var blockLines = bb.string.lines(blockLogs);
+        bb.collection.array.appendArray(lines, blockLines);
+    }
+    // Done
+    return lines;
 };
 
 module.exports = $this;

@@ -1,14 +1,13 @@
 
 var core = require("../core");
 
-/*
 var database = require('knex')({
     client: 'sqlite3',
     connection: {
         filename: "./database/dev.sqlite3",
     },
 });
-*/
+/*
 var database = require('knex')({
     client: 'pg',
     version: '7.2',
@@ -20,6 +19,7 @@ var database = require('knex')({
         database: 'git-metrics'
     },
 });
+*/
 
 database.on('query', function (queryData) {
     /*

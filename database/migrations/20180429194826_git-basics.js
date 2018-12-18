@@ -5,9 +5,13 @@ var $sugar = require("../sugars");
 exports.up = $sugar.migration(function ($mg, knex) {
     $mg.createTable("git_author", function (table) {
         // Author properties
+        $mg.addColumn(table, "email", "text");
         $mg.addColumn(table, "name", "text");
-        // No author with same name
+        /*
+        // No author with same data
+        $mg.addUnique(table, "email");
         $mg.addUnique(table, "name");
+        */
     });
     $mg.createTable("git_repo", function (table) {
         // Repository properties
@@ -18,8 +22,9 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.createTable("git_contributor", function (table) {
         // Commit links
         $mg.addColumn(table, "git_repo_id", "integer");
-        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addColumn(table, "git_author_id", "integer");
+        // Foreign keys
+        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addForeignLink(table, "git_author_id", "git_author.id");
         // No duplicate contributor for each repo
         $mg.addUnique(table, ["git_repo_id", "git_author_id"]);
@@ -27,8 +32,9 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.createTable("git_commit", function (table) {
         // Commit links
         $mg.addColumn(table, "git_repo_id", "integer");
-        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addColumn(table, "git_author_id", "integer");
+        // Foreign keys
+        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addForeignLink(table, "git_author_id", "git_author.id");
         // Commit properties
         $mg.addColumn(table, "parents", "integer");
@@ -41,10 +47,11 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.createTable("git_tree", function (table) {
         // Tree relations
         $mg.addColumn(table, "git_repo_id", "integer");
-        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addColumn(table, "git_commit_id", "integer");
-        $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
         $mg.addColumn(table, "parent_git_commit_id", "integer");
+        // Foreign keys
+        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
+        $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
         $mg.addForeignLink(table, "parent_git_commit_id", "git_commit.id");
         // No connection with same commit and parent (and repo)
         $mg.addUnique(table, ["git_repo_id", "git_commit_id", "parent_git_commit_id"]);
@@ -52,10 +59,11 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.createTable("git_file", function (table) {
         // File links
         $mg.addColumn(table, "git_repo_id", "integer");
-        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addColumn(table, "add_git_commit_id", "integer");
-        $mg.addForeignLink(table, "add_git_commit_id", "git_commit.id");
         $mg.addColumn(table, "del_git_commit_id", "integer", undefined, true);
+        // Foreign keys
+        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
+        $mg.addForeignLink(table, "add_git_commit_id", "git_commit.id");
         $mg.addForeignLink(table, "del_git_commit_id", "git_commit.id");
         // File property
         $mg.addColumn(table, "path", "text");
@@ -65,12 +73,13 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.createTable("git_rename", function (table) {
         // Rename links
         $mg.addColumn(table, "git_repo_id", "integer");
-        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addColumn(table, "git_commit_id", "integer");
-        $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
         $mg.addColumn(table, "before_git_file_id", "integer");
-        $mg.addForeignLink(table, "before_git_file_id", "git_file.id");
         $mg.addColumn(table, "after_git_file_id", "integer");
+        // Foreign keys
+        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
+        $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
+        $mg.addForeignLink(table, "before_git_file_id", "git_file.id");
         $mg.addForeignLink(table, "after_git_file_id", "git_file.id");
         // No rename with same commit and file (and repo)
         $mg.addUnique(table, ["git_repo_id", "git_commit_id", "before_git_file_id"]);
@@ -78,12 +87,13 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.createTable("git_change", function (table) {
         // Change links
         $mg.addColumn(table, "git_repo_id", "integer");
-        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
         $mg.addColumn(table, "git_commit_id", "integer");
-        $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
         $mg.addColumn(table, "git_author_id", "integer");
-        $mg.addForeignLink(table, "git_author_id", "git_author.id");
         $mg.addColumn(table, "git_file_id", "integer");
+        // Foreign keys
+        $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
+        $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
+        $mg.addForeignLink(table, "git_author_id", "git_author.id");
         $mg.addForeignLink(table, "git_file_id", "git_file.id");
         // Change properties
         $mg.addColumn(table, "additions", "integer");
