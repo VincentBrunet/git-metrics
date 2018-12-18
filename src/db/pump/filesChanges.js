@@ -44,7 +44,7 @@ module.exports = async function (repository, authorsBySignatures, commitsByHash,
             bb.flow.for(filesList, function (idx, file) {
                 // If file was alive at commit time
                 if (file.add_git_commit_time <= parentCommit.time) {
-                    if (file.del_git_commit_time == null || file.del_git_commit_time >= parentCommit.time) {
+                    if (file.del_git_commit_time == null || file.del_git_commit_time > parentCommit.time) {
                         // If the file was already found, something fishy is going on
                         if (foundFile != null) {
                             console.log("Duplicate file found for", parentCommit.hash, change.path);

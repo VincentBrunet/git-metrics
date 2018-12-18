@@ -5,4 +5,5 @@ module.exports = {
     files: require("./files"),
     refs: require("./refs"),
     repository: require("./repository"),
+    trees: require("./trees"),
 };

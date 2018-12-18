@@ -43,19 +43,27 @@ module.exports = async function (repository, commitsByHash, commitsList) {
                 console.log("Could not find file for path", deletion);
                 return; // Continue loop
             }
+            // Find the best file
+            var bestFile = null;
             bb.flow.for(filesList, function (idx, file) {
                 // If path deletion belongs to this file (not already deleted and stuff)
                 if (file.add_git_commit_time <= parentCommit.time) {
                     if (file.del_git_commit_time == null || file.del_git_commit_time >= parentCommit.time) {
-                        if (file.del_git_commit_id != parentCommit.id) {
-                            // Update file record
-                            var fileList = filesDeletedByCommitId[parentCommit.id] || [];
-                            fileList.push(file.id);
-                            filesDeletedByCommitId[parentCommit.id] = fileList;
+                        if (bestFile == null || bestFile.add_git_commit_time < file.add_git_commit_time) {
+                            bestFile = file;
                         }
                     }
                 }
             });
+            // If could not find valid file from path
+            if (!bestFile) {
+                console.log("Could not find valid file for path", deletion);
+                return; // Continue loop
+            }
+            // Update file record
+            var fileList = filesDeletedByCommitId[parentCommit.id] || [];
+            fileList.push(bestFile.id);
+            filesDeletedByCommitId[parentCommit.id] = fileList;
         });
     });
     // Format updates

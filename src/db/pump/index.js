@@ -10,5 +10,5 @@ module.exports = {
     links: require("./links"),
     refs: require("./refs"),
     repository: require("./repository"),
-    tree: require("./tree"),
+    trees: require("./trees"),
 };

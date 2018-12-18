@@ -4,8 +4,6 @@ var lookup = require("../lookup");
 var bb = require("../../bb");
 
 module.exports = async function (repository, commitsByHash, commitsList) {
-    // Count files not found
-    var notFoundFiles = 0;
     // List renamed commits files paths
     var filesRenamesPaths = {};
     bb.flow.for(commitsList, function (idx, commit) {
@@ -50,8 +48,7 @@ module.exports = async function (repository, commitsByHash, commitsList) {
             });
             // If we could not find file before rename
             if (!fileBefore) {
-                notFoundFiles++;
-                //console.log("Could not find file before rename", rename.before);
+                console.log("Could not find file before rename", rename.before);
                 return; // Continue loop
             }
             // Insert rename instance when everything is found

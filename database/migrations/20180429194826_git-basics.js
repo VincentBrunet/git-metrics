@@ -57,14 +57,14 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.createTable("git_tree", function (table) {
         // Tree relations
         $mg.addColumn(table, "git_repo_id", "integer");
-        $mg.addColumn(table, "git_commit_id", "integer");
         $mg.addColumn(table, "parent_git_commit_id", "integer");
+        $mg.addColumn(table, "child_git_commit_id", "integer");
         // Foreign keys
         $mg.addForeignLink(table, "git_repo_id", "git_repo.id");
-        $mg.addForeignLink(table, "git_commit_id", "git_commit.id");
         $mg.addForeignLink(table, "parent_git_commit_id", "git_commit.id");
+        $mg.addForeignLink(table, "child_git_commit_id", "git_commit.id");
         // No connection with same commit and parent (and repo)
-        $mg.addUnique(table, ["git_repo_id", "git_commit_id", "parent_git_commit_id"]);
+        $mg.addUnique(table, ["git_repo_id", "child_git_commit_id", "parent_git_commit_id"]);
     });
     $mg.createTable("git_link", function (table) {
         // Tree relations

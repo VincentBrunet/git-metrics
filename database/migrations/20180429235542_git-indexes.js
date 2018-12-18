@@ -24,8 +24,8 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.addIndex("git_commit", "time");
 
     $mg.addIndex("git_tree", "git_repo_id");
-    $mg.addIndex("git_tree", "git_commit_id");
     $mg.addIndex("git_tree", "parent_git_commit_id");
+    $mg.addIndex("git_tree", "child_git_commit_id");
 
     $mg.addIndex("git_link", "git_repo_id");
     $mg.addIndex("git_link", "git_commit_id");
@@ -72,8 +72,8 @@ exports.down = $sugar.migration(function ($mg) {
     $mg.dropIndex("git_commit", "time");
 
     $mg.dropIndex("git_tree", "git_repo_id");
-    $mg.dropIndex("git_tree", "git_commit_id");
     $mg.dropIndex("git_tree", "parent_git_commit_id");
+    $mg.dropIndex("git_tree", "child_git_commit_id");
 
     $mg.dropIndex("git_link", "git_repo_id");
     $mg.dropIndex("git_link", "git_commit_id");
