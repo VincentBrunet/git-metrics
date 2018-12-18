@@ -4,8 +4,6 @@ var lookup = require("../lookup");
 var bb = require("../../bb");
 
 module.exports = async function (repository, commitsByHash, commitsList) {
-    // Count files paths not found
-    var notFoundFiles = 0;
     // List all files found for mark as deleted
     var commitsFilesDeletions = {};
     bb.flow.for(commitsList, function (idx, commit) {
@@ -39,11 +37,10 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         // For every deleted paths, lookup their associated files
         bb.flow.for(commitDeletions, function (idx, deletion) {
             // Lookup files from path
-            var filesList = filesByPath[deletion];
+            var filesList = filesByPaths[deletion];
             // If could not find files from path
             if (!filesList) {
-                notFoundFiles++;
-                //console.log("Could not find file for path", deletion);
+                console.log("Could not find file for path", deletion);
                 return; // Continue loop
             }
             bb.flow.for(filesList, function (idx, file) {
@@ -76,5 +73,7 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         });
     });
     // Update files using update dictionary
-    return await bb.database.update("git_file", "id", filesUpdatesKeys, filesUpdatesValues);
+    await bb.database.update("git_file", "id", filesUpdatesKeys, filesUpdatesValues);
+    // Return updateds
+    return filesUpdatesKeys;
 };

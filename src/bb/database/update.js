@@ -1,8 +1,5 @@
 
-var thisNative = require("./_native");
-
 var thisQuery = require("./query");
-var thisBatch = require("./batch");
 var thisExecute = require("./execute");
 
 var _ = require("lodash");

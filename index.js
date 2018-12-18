@@ -3,7 +3,6 @@ var gitRepo = require("./src/git/repo");
 var gitLog = require("./src/git/log");
 var gitParse = require("./src/git/parse");
 
-var dbController = require("./src/db/controller");
 var dbPump = require("./src/db/pump");
 var dbDump = require("./src/db/dump");
 

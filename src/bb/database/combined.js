@@ -4,11 +4,14 @@ var _ = require("lodash");
 module.exports = async function __(query) {
     // If its a batch
     if (_.isArray(query)) {
-        var datas = [];
+        var datasCombined = [];
         for (var i = 0; i < query.length; i++) {
-            datas.push(await __(query[i]));
+            var datas = await __(query[i]);
+            for (var j = 0; j < datas.length; j++) {
+                datasCombined.push(datas[j]);
+            }
         }
-        return datas;
+        return datasCombined;
     }
     // If its a single query
     else {

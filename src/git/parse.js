@@ -1,6 +1,4 @@
 
-var core = require("../core");
-
 var bb = require("../bb");
 
 var $local = {};

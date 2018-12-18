@@ -14,6 +14,9 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.addIndex("git_contributor", "git_repo_id");
     $mg.addIndex("git_contributor", "git_author_id");
 
+    $mg.addIndex("git_ref", "git_repo_id");
+    $mg.addIndex("git_ref", "value");
+
     $mg.addIndex("git_commit", "id");
     $mg.addIndex("git_commit", "git_repo_id");
     $mg.addIndex("git_commit", "git_author_id");
@@ -23,6 +26,10 @@ exports.up = $sugar.migration(function ($mg, knex) {
     $mg.addIndex("git_tree", "git_repo_id");
     $mg.addIndex("git_tree", "git_commit_id");
     $mg.addIndex("git_tree", "parent_git_commit_id");
+
+    $mg.addIndex("git_link", "git_repo_id");
+    $mg.addIndex("git_link", "git_commit_id");
+    $mg.addIndex("git_link", "git_ref_id");
 
     $mg.addIndex("git_file", "id");
     $mg.addIndex("git_file", "git_repo_id");
@@ -47,12 +54,16 @@ exports.down = $sugar.migration(function ($mg) {
 
     $mg.dropIndex("git_author", "id");
     $mg.dropIndex("git_author", "name");
+    $mg.dropIndex("git_author", "email");
 
     $mg.dropIndex("git_repo", "id");
     $mg.dropIndex("git_repo", "url");
 
     $mg.dropIndex("git_contributor", "git_repo_id");
     $mg.dropIndex("git_contributor", "git_author_id");
+
+    $mg.dropIndex("git_ref", "git_repo_id");
+    $mg.dropIndex("git_ref", "value");
 
     $mg.dropIndex("git_commit", "id");
     $mg.dropIndex("git_commit", "git_repo_id");
@@ -63,6 +74,10 @@ exports.down = $sugar.migration(function ($mg) {
     $mg.dropIndex("git_tree", "git_repo_id");
     $mg.dropIndex("git_tree", "git_commit_id");
     $mg.dropIndex("git_tree", "parent_git_commit_id");
+
+    $mg.dropIndex("git_link", "git_repo_id");
+    $mg.dropIndex("git_link", "git_commit_id");
+    $mg.dropIndex("git_link", "git_ref_id");
 
     $mg.dropIndex("git_file", "id");
     $mg.dropIndex("git_file", "git_repo_id");

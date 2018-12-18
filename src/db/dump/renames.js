@@ -2,7 +2,7 @@
 var bb = require("../../bb");
 
 module.exports = async function (log, commitsById, filesById) {
-    var query = dbController.query("git_rename");
+    var query = bb.database.query("git_rename");
     query.select("*");
     var results = await bb.database.execute(query);
     if (log) {

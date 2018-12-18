@@ -15,7 +15,7 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         });
     });
     // Lookup all files renamed
-    var filesByPath = lookup.files.byPaths(repository.id, bb.dict.keys(filesRenamesPaths));
+    var filesByPaths = await lookup.files.byPaths(repository.id, bb.dict.keys(filesRenamesPaths));
     // List all rename instances to be created
     var renamesInserted = [];
     bb.flow.for(commitsList, function (idx, commit) {
@@ -29,7 +29,7 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         bb.flow.for(commit.renames, function (idx, rename) {
             // Lookup file after rename
             var fileAfter = undefined;
-            var filesAfter = filesByPath[rename.after];
+            var filesAfter = filesByPaths[rename.after];
             bb.flow.for(filesAfter, function (idx, file) {
                 if (file.add_git_commit_id == parentCommit.id) {
                     fileAfter = file;
@@ -37,12 +37,12 @@ module.exports = async function (repository, commitsByHash, commitsList) {
             });
             // If we could not find file after rename
             if (!fileAfter) {
-                console.log("Could not find file after rename", rename.after);
+                console.log("Could not find file after rename", rename.after, "from",  rename.before);
                 return; // Continue loop
             }
             // Lookup file before rename
             var fileBefore = undefined;
-            var filesBefore = filesByPath[rename.before];
+            var filesBefore = filesByPaths[rename.before];
             bb.flow.for(filesBefore, function (idx, file) {
                 if (file.del_git_commit_id == parentCommit.id) {
                     fileBefore = file;
@@ -64,5 +64,7 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         });
     });
     // Insert all rename previously found
-    return await bb.database.insert("git_rename", renamesInserted, "ignore");
+    await bb.database.insert("git_rename", renamesInserted, "ignore");
+    // Return inserteds
+    return renamesInserted;
 };

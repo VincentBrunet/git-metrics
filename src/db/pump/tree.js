@@ -35,5 +35,7 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         });
     });
     // Insert all found parenting relations
-    return await bb.database.insert("git_tree", treesInserted, "ignore");
+    await bb.database.insert("git_tree", treesInserted, "ignore");
+    // Return inserteds
+    return treesInserted;
 };

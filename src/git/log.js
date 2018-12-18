@@ -5,7 +5,7 @@ var $local =  {};
 
 $local.logsForTimePeriod = async function (repository, maxDate, minDate) {
     // Base command
-    var command = "git log --numstat --full-history --parents --no-color --summary --all --date=iso --source --decorate=short";
+    var command = "git log --numstat --full-history --parents --no-color --summary --all --date=rfc2822 --source --decorate=short";
     // Add date limits
     var dateFormat = 'MMMM DD YYYY HH:mm:ss ZZ';
     command += " --until=\"" + maxDate.format(dateFormat) + "\"";

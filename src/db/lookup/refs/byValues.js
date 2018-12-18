@@ -9,8 +9,8 @@ module.exports = async function (repositoryId, refsValues) {
         query.select(["id", "value"]);
     });
     // Batch queries and combine all results
-    var refs = await bb.database.execute(batch);
-    // Index ref by email
+    var refs = await bb.database.combined(batch);
+    // Index ref by value
     var refsByValue = {};
     bb.flow.for(refs, function (idx, ref) {
         refsByValue[ref.value] = ref;

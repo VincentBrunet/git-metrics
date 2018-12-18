@@ -18,7 +18,7 @@ module.exports = async function (repositoryId, filesPaths) {
         });
     });
     // Run all batches query and merge results
-    var files = await bb.database.execute(batch);
+    var files = await bb.database.combined(batch);
     // Index files by path
     var filesByPath = {};
     bb.flow.for(files, function (idx, file) {

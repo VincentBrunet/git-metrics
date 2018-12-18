@@ -33,8 +33,8 @@ module.exports = async function (repository, authorsBySignatures, commitsList) {
     });
     // Insert all commits found (only if not already inserted)
     await bb.database.insert("git_commit", commitsInserted, "ignore");
-    // Lookup all commits matching found hashes
-    var commitsByHash = await lookup.commits.byHashes(repository.id, commitsHashes);
+    // Lookup all commits matching current repository
+    var commitsByHash = await lookup.commits.byRepository(repository.id);
     // Done
     return commitsByHash;
 };

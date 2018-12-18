@@ -8,7 +8,7 @@ module.exports = async function (authorsSignatures) {
         query.select(["id", "email", "name", "signature"]);
     });
     // Batch queries and combine all results
-    var authors = await bb.database.execute(batch);
+    var authors = await bb.database.combined(batch);
     // Index author by email
     var authorsBySignature = {};
     bb.flow.for(authors, function (idx, author) {

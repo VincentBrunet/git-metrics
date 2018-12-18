@@ -1,6 +1,4 @@
 
-var core = require("../core");
-
 var app = require("./app");
 
 var routesAuthors = require("./routes/authors");

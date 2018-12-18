@@ -11,7 +11,7 @@ module.exports = async function (repositoryUrl) {
     // Insert repository if not already there
     await bb.database.insert("git_repo", [repository], "ignore");
     // Fetch existing repository infos
-    var repository = await lookup.repository.byUrl(repositoryUrl);
+    var repositories = await lookup.repository.byUrls([repositoryUrl]);
     // Done
-    return repository;
+    return repositories[0];
 };

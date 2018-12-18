@@ -1,4 +1,4 @@
 
 module.exports = {
-    byUrl: require("./byUrl"),
+    byUrls: require("./byUrls"),
 };
