@@ -3,7 +3,7 @@ var lookup = require("../lookup");
 
 var bb = require("../../bb");
 
-module.exports = async function (repository, authorsBySignatures, commitsByHash, commitsList) {
+module.exports = async function (repository, authorsBySignatures, commitsByHash, treesByChildCommitHash, commitsList) {
     // List file changes paths found
     var commitsChangesPaths = {};
     bb.flow.for(commitsList, function (idx, commit) {
@@ -12,7 +12,11 @@ module.exports = async function (repository, authorsBySignatures, commitsByHash,
         });
     });
     // Lookup all files changed
-    var filesByPath = await lookup.files.byPaths(repository.id, bb.dict.keys(commitsChangesPaths));
+    var files = await lookup.files.byPaths(repository.id, bb.dict.keys(commitsChangesPaths));
+    // Index files by commit hash and path
+    var filesByAddCommitHashAndPath = bb.array.indexBy(files, function (file) {
+        return file.add_git_commit_hash + "::" + file.path;
+    });
     // List changes to be applied to different paths
     var insertedChanges = [];
     bb.flow.for(commitsList, function (idx, commit) {
@@ -32,39 +36,48 @@ module.exports = async function (repository, authorsBySignatures, commitsByHash,
         }
         // Loop over all commit changes
         bb.flow.for(commit.changes, function (idx, change) {
-            // Lookup file changed by path
-            var filesList = filesByPath[change.path];
-            // If could not find files from path
-            if (!filesList) {
-                console.log("Could not find files from path", change.path);
-                return; // Continue loop
-            }
-            // Find the correct file that was changed
-            var foundFile = null;
-            bb.flow.for(filesList, function (idx, file) {
-                // If file was alive at commit time
-                if (file.add_git_commit_time <= parentCommit.time) {
-                    if (file.del_git_commit_time == null || file.del_git_commit_time > parentCommit.time) {
-                        // If the file was already found, something fishy is going on
-                        if (foundFile != null) {
-                            console.log("Duplicate file found for", parentCommit.hash, change.path);
-                            return; // Continue loop
+            // Search over commits to find their file origins
+            var commitsChecked = {};
+            var commitsToCheck = [parentCommit];
+            while (commitsToCheck.length > 0) {
+                // Top-most commit check if the file we are looking for is within created things
+                var commitToCheck = commitsToCheck.pop();
+
+                if (commitsChecked[commitToCheck.hash]) {
+                    console.log("Checking commit twice", commit.hash, change.path, commitToCheck.hash, commitsToCheck.length);
+                    //throw new Error("Whatwhat");
+                }
+                commitsChecked[commitToCheck.hash] = true;
+
+
+                var fileFound = filesByAddCommitHashAndPath[commitToCheck.hash + "::" + change.path];
+                // Update file record if file was created by this commit
+                if (fileFound) {
+                    // Insert change datas
+                    insertedChanges.push({
+                        "git_repo_id": repository.id,
+                        "git_commit_id": parentCommit.id,
+                        "git_author_id": author.id,
+                        "git_file_id": fileFound.id,
+                        "additions": change.additions,
+                        "deletions": change.deletions,
+                        "changes": change.total,
+                        "binary": +change.binary,
+                    });
+                }
+                // If not, check parents
+                else {
+                    var parentTrees = treesByChildCommitHash[commitToCheck.hash];
+                    if (parentTrees) {
+                        for (var i = 0; i < parentTrees.length; i++) {
+                            var alsoToCheck = commitsByHash[parentTrees[i].parent_git_commit_hash];
+                            if (alsoToCheck) {
+                                commitsToCheck.push(alsoToCheck);
+                            }
                         }
-                        // Insert change datas
-                        insertedChanges.push({
-                            "git_repo_id": repository.id,
-                            "git_commit_id": parentCommit.id,
-                            "git_author_id": author.id,
-                            "git_file_id": file.id,
-                            "additions": change.additions,
-                            "deletions": change.deletions,
-                            "changes": change.total,
-                            "binary": +change.binary,
-                        });
-                        foundFile = file;
                     }
                 }
-            });
+            }
         });
     });
     // Do insert all changes (ignore already inserted ones)

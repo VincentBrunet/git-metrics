@@ -10,11 +10,6 @@ module.exports = async function (repositoryId, commitsHashes) {
     });
     // Batch queries and combine all results
     var commits = await bb.database.combined(batch);
-    // Index commit by hash
-    var commitsByHash = {};
-    bb.flow.for(commits, function (idx, commit) {
-        commitsByHash[commit.hash] = commit;
-    });
     // Done
-    return commitsByHash;
+    return commits;
 };

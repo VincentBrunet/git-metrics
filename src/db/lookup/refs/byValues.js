@@ -10,11 +10,6 @@ module.exports = async function (repositoryId, refsValues) {
     });
     // Batch queries and combine all results
     var refs = await bb.database.combined(batch);
-    // Index ref by value
-    var refsByValue = {};
-    bb.flow.for(refs, function (idx, ref) {
-        refsByValue[ref.value] = ref;
-    });
     // Done
-    return refsByValue;
+    return refs;
 };

@@ -4,11 +4,6 @@ var lookup = require("../lookup");
 var bb = require("../../bb");
 
 module.exports = async function (repository, authorsBySignatures, commitsList) {
-    // List all commits hash
-    var commitsHashes = [];
-    bb.flow.for(commitsList, function (idx, commit) {
-        commitsHashes.push(commit.hash);
-    });
     // List all commits ready for insertion
     var commitsInserted = [];
     bb.flow.for(commitsList, function (idx, commit) {
@@ -34,7 +29,9 @@ module.exports = async function (repository, authorsBySignatures, commitsList) {
     // Insert all commits found (only if not already inserted)
     await bb.database.insert("git_commit", commitsInserted, "ignore");
     // Lookup all commits matching current repository
-    var commitsByHash = await lookup.commits.byRepository(repository.id);
+    var commits = await lookup.commits.byRepository(repository.id);
+    // Index commit by hash
+    var commitsByHash = bb.array.indexBy(commits, "hash");
     // Done
     return commitsByHash;
 };

@@ -8,11 +8,6 @@ module.exports = async function (repositoryId) {
     query.select(["id", "value"]);
     // Execute
     var refs = await bb.database.execute(query);
-    // Index ref by value
-    var refsByValue = {};
-    bb.flow.for(refs, function (idx, ref) {
-        refsByValue[ref.value] = ref;
-    });
     // Done
-    return refsByValue;
+    return refs;
 };

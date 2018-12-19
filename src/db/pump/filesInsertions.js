@@ -1,6 +1,4 @@
 
-var lookup = require("../lookup");
-
 var bb = require("../../bb");
 
 module.exports = async function (repository, commitsByHash, commitsList) {

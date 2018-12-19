@@ -5,7 +5,9 @@ var bb = require("../../bb");
 
 module.exports = async function (repository, commitsByHash, commitsList) {
     // Get all refs within repository
-    var refsByValues = await lookup.refs.byRepository(repository.id);
+    var refs = await lookup.refs.byRepository(repository.id);
+    // Index refs by value
+    var refsByValues = bb.array.indexBy(refs, "value");
     // Insert links
     var linksInserted = [];
     bb.flow.for(commitsList, function (idx, commit) {

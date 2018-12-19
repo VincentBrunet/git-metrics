@@ -3,7 +3,7 @@ var lookup = require("../lookup");
 
 var bb = require("../../bb");
 
-module.exports = async function (repository, commitsByHash, commitsList) {
+module.exports = async function (repository, commitsByHash, treesByChildCommitHash, commitsList) {
     // List all files found for mark as deleted
     var commitsFilesDeletions = {};
     bb.flow.for(commitsList, function (idx, commit) {
@@ -15,7 +15,11 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         });
     });
     // Lookup all files deleteds
-    var filesByPaths = await lookup.files.byPaths(repository.id, bb.dict.keys(commitsFilesDeletions));
+    var files = await lookup.files.byPaths(repository.id, bb.dict.keys(commitsFilesDeletions));
+    // Index files by commit hash and path
+    var filesByAddCommitHashAndPath = bb.array.indexBy(files, function (file) {
+        return file.add_git_commit_hash + "::" + file.path;
+    });
     // List file updates to be applied
     var filesDeletedByCommitId = {};
     bb.flow.for(commitsList, function (idx, commit) {
@@ -36,34 +40,31 @@ module.exports = async function (repository, commitsByHash, commitsList) {
         });
         // For every deleted paths, lookup their associated files
         bb.flow.for(commitDeletions, function (idx, deletion) {
-            // Lookup files from path
-            var filesList = filesByPaths[deletion];
-            // If could not find files from path
-            if (!filesList) {
-                console.log("Could not find file for path", deletion);
-                return; // Continue loop
-            }
-            // Find the best file
-            var bestFile = null;
-            bb.flow.for(filesList, function (idx, file) {
-                // If path deletion belongs to this file (not already deleted and stuff)
-                if (file.add_git_commit_time <= parentCommit.time) {
-                    if (file.del_git_commit_time == null || file.del_git_commit_time >= parentCommit.time) {
-                        if (bestFile == null || bestFile.add_git_commit_time < file.add_git_commit_time) {
-                            bestFile = file;
+            // Search over commits to find their file origins
+            var commitsToCheck = [parentCommit];
+            while (commitsToCheck.length > 0) {
+                // Top-most commit check if the file we are looking for is within created things
+                var commitToCheck = commitsToCheck.pop();
+                var fileFound = filesByAddCommitHashAndPath[commitToCheck.hash + "::" + deletion];
+                // Update file record if file was created by this commit
+                if (fileFound) {
+                    var fileList = filesDeletedByCommitId[parentCommit.id] || [];
+                    fileList.push(fileFound.id);
+                    filesDeletedByCommitId[parentCommit.id] = fileList;
+                }
+                // If not, check parents
+                else {
+                    var parentTrees = treesByChildCommitHash[commitToCheck.hash];
+                    if (parentTrees) {
+                        for (var i = 0; i < parentTrees.length; i++) {
+                            var alsoToCheck = commitsByHash[parentTrees[i].parent_git_commit_hash];
+                            if (alsoToCheck) {
+                                commitsToCheck.push(alsoToCheck);
+                            }
                         }
                     }
                 }
-            });
-            // If could not find valid file from path
-            if (!bestFile) {
-                console.log("Could not find valid file for path", deletion);
-                return; // Continue loop
             }
-            // Update file record
-            var fileList = filesDeletedByCommitId[parentCommit.id] || [];
-            fileList.push(bestFile.id);
-            filesDeletedByCommitId[parentCommit.id] = fileList;
         });
     });
     // Format updates

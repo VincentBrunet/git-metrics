@@ -27,8 +27,8 @@ module.exports = async function (repositoryUrl, commitsList) {
     console.log("thisCommits", bb.dict.count(commitsByHash));
 
     // Step 4 - Make sure all commit parenting is created
-    var treesByCommitHash = await thisTrees(repository, commitsByHash, commitsList);
-    console.log("thisTrees", treesByCommitHash.length);
+    var treesByChildCommitHash = await thisTrees(repository, commitsByHash, commitsList);
+    console.log("thisTrees", treesByChildCommitHash.length);
 
     // Step 5.1 - Make sure all refs are created
     var refsResults = await thisRefs(repository, commitsByHash, commitsList);
@@ -41,13 +41,13 @@ module.exports = async function (repositoryUrl, commitsList) {
     var filesInsertionsResults = await thisFilesInsertions(repository, commitsByHash, commitsList);
     console.log("thisFilesInsertions", filesInsertionsResults.length);
     // Step 6.2 - Make sure files are marked deleted when commit are deleting them
-    var filesDeletionsResults = await thisFilesDeletions(repository, commitsByHash, commitsList);
+    var filesDeletionsResults = await thisFilesDeletions(repository, commitsByHash, treesByChildCommitHash, commitsList);
     console.log("thisFilesDeletions", filesDeletionsResults.length);
     // Step 6.3 - Make sure renaming are saved when a commit renames a file
     var filesRenamesResults = await thisFilesRenames(repository, commitsByHash, commitsList);
     console.log("thisFilesRenames", filesRenamesResults.length);
     // Step 6.4 - Make sure line changes are saved
-    var filesChangesResults = await thisFilesChanges(repository, authorsBySignatures, commitsByHash, commitsList);
+    var filesChangesResults = await thisFilesChanges(repository, authorsBySignatures, commitsByHash, treesByChildCommitHash, commitsList);
     console.log("thisFilesChanges", filesChangesResults.length);
 
 };

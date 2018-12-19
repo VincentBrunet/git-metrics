@@ -8,11 +8,6 @@ module.exports = async function (repositoryId) {
     query.select(["id", "hash", "time"]);
     // Execute
     var commits = await bb.database.execute(query);
-    // Index commit by hash
-    var commitsByHash = {};
-    bb.flow.for(commits, function (idx, commit) {
-        commitsByHash[commit.hash] = commit;
-    });
     // Done
-    return commitsByHash;
+    return commits;
 };

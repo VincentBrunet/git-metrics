@@ -13,19 +13,14 @@ module.exports = async function (repositoryId, filesPaths) {
             "git_file.path": "path",
             "add_git_commit.id": "add_git_commit_id",
             "add_git_commit.time": "add_git_commit_time",
+            "add_git_commit.hash": "add_git_commit_hash",
             "del_git_commit.id": "del_git_commit_id",
             "del_git_commit.time": "del_git_commit_time",
+            "del_git_commit.hash": "del_git_commit_hash",
         });
     });
     // Run all batches query and merge results
     var files = await bb.database.combined(batch);
-    // Index files by path
-    var filesByPath = {};
-    bb.flow.for(files, function (idx, file) {
-        var filesList = filesByPath[file.path] || [];
-        filesList.push(file);
-        filesByPath[file.path] = filesList;
-    });
-    // Done, transfer files indexed by path
-    return filesByPath;
+    // Done
+    return files;
 };

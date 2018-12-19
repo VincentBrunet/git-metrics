@@ -8,7 +8,7 @@ module.exports = async function (repositoryUrls) {
         query.select(["id", "url"]);
     });
     // Execute
-    var results = await bb.database.combined(batch);
-    // There should only be one
-    return results;
+    var repositories = await bb.database.combined(batch);
+    // Done
+    return repositories;
 };
