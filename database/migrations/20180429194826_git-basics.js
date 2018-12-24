@@ -47,6 +47,12 @@ exports.up = $sugar.migration(function ($mg, knex) {
         // Commit properties
         $mg.addColumn(table, "refs", "integer");
         $mg.addColumn(table, "parents", "integer");
+        $mg.addColumn(table, "changes", "integer");
+        $mg.addColumn(table, "insertions", "integer");
+        $mg.addColumn(table, "deletions", "integer");
+        $mg.addColumn(table, "renames", "integer");
+        $mg.addColumn(table, "parents", "integer");
+        $mg.addColumn(table, "source", "text");
         $mg.addColumn(table, "hash", "text");
         $mg.addColumn(table, "comment", "text");
         $mg.addColumn(table, "time", "timestamp");
@@ -120,7 +126,7 @@ exports.up = $sugar.migration(function ($mg, knex) {
         // Change properties
         $mg.addColumn(table, "additions", "integer");
         $mg.addColumn(table, "deletions", "integer");
-        $mg.addColumn(table, "changes", "integer");
+        $mg.addColumn(table, "total", "integer");
         $mg.addColumn(table, "binary", "integer");
         // No change with same commit and file (and repo)
         $mg.addUnique(table, ["git_repo_id", "git_commit_id", "git_file_id"]);
@@ -131,7 +137,6 @@ exports.up = $sugar.migration(function ($mg, knex) {
 exports.down = $sugar.migration(function ($mg) {
     $mg.dropTable("git_change");
     $mg.dropTable("git_rename");
-    $mg.dropTable("git_file");
     $mg.dropTable("git_link");
     $mg.dropTable("git_tree");
     $mg.dropTable("git_commit");

@@ -1,14 +1,15 @@
 
-var _ = require("lodash");
+var typeIsString = require("../type/isString");
+var typeIsFunction = require("../type/isFunction");
 
 module.exports = function (array, key) {
     var index = {};
-    if (_.isString(key)) {
+    if (typeIsString(key)) {
         for (var i = 0; i < array.length; i++) {
             index[array[i][key]] = array[i];
         }
     }
-    if (_.isFunction(key)) {
+    if (typeIsFunction(key)) {
         for (var i = 0; i < array.length; i++) {
             index[key(array[i])] = array[i];
         }

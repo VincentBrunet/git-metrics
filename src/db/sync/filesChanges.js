@@ -3,66 +3,53 @@ var lookup = require("../lookup");
 
 var bb = require("../../bb");
 
-module.exports = async function (repository, authorsBySignatures, commitsByHash, treesByChildCommitHash, commitsList) {
-    // List file changes paths found
-    var commitsChangesPaths = {};
-    bb.flow.for(commitsList, function (idx, commit) {
-        bb.flow.for(commit.changes, function (idx, change) {
-            commitsChangesPaths[change.path] = true;
-        });
-    });
-    // Lookup all files changed
-    var files = await lookup.files.byPaths(repository.id, bb.dict.keys(commitsChangesPaths));
-    // Index files by commit hash and path
-    var filesByAddCommitHashAndPath = bb.array.indexBy(files, function (file) {
-        return file.add_git_commit_hash + "::" + file.path;
-    });
+module.exports = async function (context) {
     // List changes to be applied to different paths
     var insertedChanges = [];
-    bb.flow.for(commitsList, function (idx, commit) {
-        // Lookup parent commit
-        var parentCommit = commitsByHash[commit.hash];
-        // If we could not find parent commit
-        if (!parentCommit) {
-            console.log("Could not find parent commit", commit.hash);
+    bb.flow.for(context.parsed.commits, function (idx, parsedCommit) {
+        // Lookup commit
+        var syncedCommit = context.synced.commit[parsedCommit.hash];
+        // If we could not find commit
+        if (!syncedCommit) {
+            console.log("Could not find synced commit", parsedCommit.hash);
             return; // Continue loop
         }
         // Lookup commit author
-        var author = authorsBySignatures[commit.author.signature];
+        var syncedAuthor = context.synced.authors[parsedCommit.author.signature];
         // Could not find author for this commit
-        if (!author) {
-            console.log("Could not find author", commit.author);
+        if (!syncedAuthor) {
+            console.log("Could not find author", parsedCommit.author);
             return; // Continue loop
         }
         // Loop over all commit changes
-        bb.flow.for(commit.changes, function (idx, change) {
+        bb.flow.for(parsedCommit.changes, function (idx, parsedChange) {
             // Search over commits to find their file origins
             var commitsChecked = {};
-            var commitsToCheck = [parentCommit];
+            var commitsToCheck = [syncedCommit];
             while (commitsToCheck.length > 0) {
                 // Top-most commit check if the file we are looking for is within created things
                 var commitToCheck = commitsToCheck.pop();
 
                 if (commitsChecked[commitToCheck.hash]) {
-                    console.log("Checking commit twice", commit.hash, change.path, commitToCheck.hash, commitsToCheck.length);
+                    console.log("Checking commit twice", parsedCommit.hash, parsedChange.path, commitToCheck.hash, commitsToCheck.length);
                     //throw new Error("Whatwhat");
                 }
                 commitsChecked[commitToCheck.hash] = true;
 
 
-                var fileFound = filesByAddCommitHashAndPath[commitToCheck.hash + "::" + change.path];
+                var fileFound = filesByAddCommitHashAndPath[commitToCheck.hash + "::" + parsedChange.path];
                 // Update file record if file was created by this commit
                 if (fileFound) {
                     // Insert change datas
                     insertedChanges.push({
                         "git_repo_id": repository.id,
-                        "git_commit_id": parentCommit.id,
-                        "git_author_id": author.id,
+                        "git_commit_id": syncedCommit.id,
+                        "git_author_id": syncedAuthor.id,
                         "git_file_id": fileFound.id,
-                        "additions": change.additions,
-                        "deletions": change.deletions,
-                        "changes": change.total,
-                        "binary": +change.binary,
+                        "additions": parsedChange.additions,
+                        "deletions": parsedChange.deletions,
+                        "total": parsedChange.total,
+                        "binary": +parsedChange.binary,
                     });
                 }
                 // If not, check parents

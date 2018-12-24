@@ -1,6 +1,5 @@
 
 module.exports = {
-    dump: require("dump"),
-    lookup: require("lookup"),
-    pump: require("pump"),
+    lookup: require("./lookup"),
+    sync: require("./sync"),
 };

@@ -1,8 +1,8 @@
 
-var _ = require("lodash");
+var typeIsArray = require("../type/isArray");
 
 module.exports = function (collection, elem) {
-    if (_.isArray(collection)) {
+    if (typeIsArray(collection)) {
         for (var i = 0; i < collection.length; i++) {
             if (elem) {
                 var value = collection[i];

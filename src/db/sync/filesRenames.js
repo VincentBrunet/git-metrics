@@ -4,14 +4,6 @@ var lookup = require("../lookup");
 var bb = require("../../bb");
 
 module.exports = async function (repository, commitsByHash, commitsList) {
-    // List renamed commits files paths
-    var filesRenamesPaths = {};
-    bb.flow.for(commitsList, function (idx, commit) {
-        bb.flow.for(commit.renames, function (idx, rename) {
-            filesRenamesPaths[rename.before] = true;
-            filesRenamesPaths[rename.after] = true;
-        });
-    });
     // Lookup all files renamed
     var files = await lookup.files.byPaths(repository.id, bb.dict.keys(filesRenamesPaths));
     // Group files by paths

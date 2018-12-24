@@ -1,7 +1,9 @@
 
-var thisNative = require("./_native");
+var objectFunctions = require("../object/functions");
 
-var _ = require("lodash");
+var flowFor = require("../flow/for");
+
+var thisNative = require("./_native");
 
 function Query(tableName) {
     // Locally accessible object
@@ -13,8 +15,8 @@ function Query(tableName) {
         self._internal = self._internal(tableName);
     }
     // Copy the knex functionalities
-    var methods = _.functions(thisNative);
-    _.each(methods, function (method) {
+    var methods = objectFunctions(thisNative);
+    flowFor(methods, function (idx, method) {
         // Chained method dont need to be chained anymore
         self[method] = function () {
             var args = Array.from(arguments);
@@ -28,7 +30,7 @@ function Query(tableName) {
     // Easier selection aliases
     self.selectAs = function (dict) {
         var columns = [];
-        _.each(dict, function (value, key) {
+        flowFor(dict, function (key, value) {
             columns.push(key + " AS " + value);
         });
         return self.select(columns);

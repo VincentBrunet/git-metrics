@@ -1,8 +1,8 @@
 
+var typeIsArray = require("../type/isArray");
+
 var thisQuery = require("./query");
 var thisExecute = require("./execute");
-
-var _ = require("lodash");
 
 module.exports = async function (tableName, indexColumn, indexKeys, indexedValues) {
     // Create one query for each update :(
@@ -12,7 +12,7 @@ module.exports = async function (tableName, indexColumn, indexKeys, indexedValue
         var query = thisQuery(tableName);
         var key = indexKeys[i];
         var value = indexedValues[i];
-        if (_.isArray(key)) {
+        if (typeIsArray(key)) {
             query.whereIn(indexColumn, key);
         }
         else {

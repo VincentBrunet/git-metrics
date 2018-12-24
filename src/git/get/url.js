@@ -1,15 +1,11 @@
 
-var bb = require("../bb");
+var bb = require("../../bb");
 
-var $this = {};
-
-$this.currentRepo = async function (repository, next) {
+module.exports = async function (path) {
     var command = "git config --get remote.origin.url";
     var options = {
-        cwd: repository,
+        cwd: path,
     };
     var result = await bb.process.run(command, options);
     return result.stdout.trim();
 };
-
-module.exports = $this;

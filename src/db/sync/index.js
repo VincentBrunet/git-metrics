@@ -1,8 +1,9 @@
 
 module.exports = {
-    all: require("./all"),
     authors: require("./authors"),
     commits: require("./commits"),
+    context: require("./context"),
+    contributors: require("./contributors"),
     filesChanges: require("./filesChanges"),
     filesDeletions: require("./filesDeletions"),
     filesInsertions: require("./filesInsertions"),

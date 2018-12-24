@@ -1,72 +1,20 @@
 
-var bb = require("../bb");
+var bb = require("../../bb");
 
-var $local = {};
+var thisHash = require("./hash");
+var thisPaths = require("./paths");
 
-$local.isCommitHash = function (string) {
-    // Hash is 40 character
-    if (string.length != 40) {
-        return false;
-    }
-    // Only hexadecimal characters allowed
-    var allowedChars = {
-        "a": true, "b": true, "c": true, "d": true, "e": true, "f": true,
-        "A": true, "B": true, "C": true, "D": true, "E": true, "F": true,
-        "0": true, "1": true, "2": true, "3": true, "4": true,
-        "5": true, "6": true, "7": true, "8": true, "9": true,
-    };
-    // Check if all characters in string are allowed
-    for (var i = 0; i > string.length; i++) {
-        if (!allowedChars[string[i]]) {
-            return false;
-        }
-    }
-    // No error, we good
-    return true;
-};
-
-$local.parseFilePaths = function (filePath) {
-    // Check if path contains renaming pattern
-    var renameRegex1 = /({.* => .*})/gi;
-    var renameCheck1 = filePath.match(renameRegex1);
-    if (renameCheck1) {
-        // If it does, parse and reconstruct before => after paths
-        var renameValue = renameCheck1[0];
-        var renameParsed = renameValue.replace("{", "").replace("}", "");
-        var renamePaths = renameParsed.split(" => ");
-        // Format results
-        var filePathBefore = filePath.replace(renameValue, renamePaths[0]);
-        var filePathAfter = filePath.replace(renameValue, renamePaths[1]);
-        return [filePathBefore, filePathAfter];
-    }
-    var renameRegex2 = /^(.* => .*)$/gi;
-    var renameCheck2 = filePath.match(renameRegex2);
-    if (renameCheck2) {
-        // If it does, parse and reconstruct before => after paths
-        var renameValue = renameCheck2[0];
-        var renamePaths = renameValue.split(" => ");
-        // Format results
-        var filePathBefore = filePath.replace(renameValue, renamePaths[0]);
-        var filePathAfter = filePath.replace(renameValue, renamePaths[1]);
-        return [filePathBefore, filePathAfter];
-    }
-    // If its just a regular file path
-    return [filePath];
-};
-
-var $this = {};
-
-$this.parseLogList = function (commitsLines, logs) {
+module.exports = function (history) {
     // Final result of commit data
     var commitsData = [];
     // Take raw logs and split into commits and commit lines
-    var commitsBlocks = bb.array.chunks(commitsLines, function (idx, line) {
+    var commitsLines = bb.array.chunks(history, function (idx, line) {
         return line.startsWith("commit ");
     });
     // For every commits
-    for (var i = 0; i < commitsBlocks.length; i++) {
+    for (var i = 0; i < commitsLines.length; i++) {
         // Get lines of commit
-        var lines = commitsBlocks[i];
+        var lines = commitsLines[i];
         // Commit must be at least 3 lines
         if (lines.length < 3) {
             console.log("Invalid commit", lines.length, lines);
@@ -109,7 +57,7 @@ $this.parseLogList = function (commitsLines, logs) {
                 commitData.hash = commitLineHashes[1].trim();
                 bb.flow.for(commitLineHashes, function (idx, part) {
                     if (idx > 1) {
-                        if ($local.isCommitHash(part)) {
+                        if (thisHash(part)) {
                             commitData.parents.push(part);
                         }
                     }
@@ -173,7 +121,7 @@ $this.parseLogList = function (commitsLines, logs) {
                 var fileLine = line.split("\t");
                 if (fileLine.length >= 3) {
                     // Parse file path
-                    var filePaths = $local.parseFilePaths(fileLine[2].trim());
+                    var filePaths = thisPaths(fileLine[2].trim());
                     // If we have a rename
                     if (filePaths.length > 1) {
                         var renameData = {
@@ -214,5 +162,3 @@ $this.parseLogList = function (commitsLines, logs) {
     // Done
     return commitsData;
 };
-
-module.exports = $this;

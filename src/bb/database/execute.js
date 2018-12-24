@@ -1,9 +1,10 @@
 
-var _ = require("lodash");
+var typeIsArray = require("../type/isArray");
+var dictValues = require("../dict/values");
 
 module.exports = async function __(query) {
     // If its a batch
-    if (_.isArray(query)) {
+    if (typeIsArray(query)) {
         var datas = [];
         for (var i = 0; i < query.length; i++) {
             datas.push(await __(query[i]));
@@ -13,8 +14,8 @@ module.exports = async function __(query) {
     // If its a single query
     else {
         var datas = await query._internal;
-        if (!_.isArray(datas)) {
-            datas = _.values(datas);
+        if (!typeIsArray(datas)) {
+            datas = dictValues(datas);
         }
         return datas;
     }
