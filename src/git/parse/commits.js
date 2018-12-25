@@ -22,7 +22,7 @@ module.exports = function (history) {
         // Commit datas
         var commitData = {
             // Linkage
-            parents: [],
+            trees: [],
             refs: [],
             source: "",
             // Commit header
@@ -35,7 +35,7 @@ module.exports = function (history) {
             },
             // Commit contents
             comment: [],
-            additions: [],
+            creations: [],
             deletions: [],
             renames: [],
             changes: [],
@@ -58,7 +58,7 @@ module.exports = function (history) {
                 bb.flow.for(commitLineHashes, function (idx, part) {
                     if (idx > 1) {
                         if (thisHash(part)) {
-                            commitData.parents.push(part);
+                            commitData.trees.push(part);
                         }
                     }
                 });
@@ -108,7 +108,7 @@ module.exports = function (history) {
                 // If its a file creation event
                 if (line.startsWith(" create mode")) {
                     var filePath = line.substring(20);
-                    commitData.additions.push(bb.string.path.relative(filePath));
+                    commitData.creations.push(bb.string.path.relative(filePath));
                     continue;
                 }
                 // If its a file deletion event
@@ -132,22 +132,22 @@ module.exports = function (history) {
                     }
                     // Read log line change sizes
                     var isBinary = false;
-                    var addCount = parseInt(fileLine[0]);
-                    if (isNaN(addCount)) {
+                    var insertCount = parseInt(fileLine[0]);
+                    if (isNaN(insertCount)) {
                         isBinary = true;
-                        addCount = 0;
+                        insertCount = 0;
                     }
-                    var delCount = parseInt(fileLine[1]);
-                    if (isNaN(delCount)) {
+                    var removeCount = parseInt(fileLine[1]);
+                    if (isNaN(removeCount)) {
                         isBinary = true;
-                        delCount = 0;
+                        removeCount = 0;
                     }
                     // Save data
                     commitData.changes.push({
                         path: bb.string.path.relative(filePaths[0]),
-                        additions: addCount,
-                        deletions: delCount,
-                        total: addCount + delCount,
+                        insert: insertCount,
+                        remove: removeCount,
+                        total: insertCount + removeCount,
                         binary: isBinary,
                     });
                     continue;

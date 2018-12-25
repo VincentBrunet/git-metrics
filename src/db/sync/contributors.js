@@ -4,11 +4,13 @@ var lookup = require("../lookup");
 var bb = require("../../bb");
 
 module.exports = async function (context) {
+    // Lookup repository
+    var syncedRepository = context.synced.repository;
     // Insert contributors
     var insertedContributors = [];
     bb.flow.for(context.synced.authors, function (key, syncedAuthor) {
         insertedContributors.push({
-            "git_repo_id": context.synced.repository.id,
+            "git_repository_id": syncedRepository.id,
             "git_author_id": syncedAuthor.id,
         });
     });

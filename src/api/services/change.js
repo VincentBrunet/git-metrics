@@ -13,8 +13,8 @@ $this.changesByAuthors = function (repositoryId, authorsIds, next) {
             "git_change.git_author_id": "git_author_id",
             "git_commit.time": "time",
             "git_file.path": "path",
-            "git_change.additions": "additions",
-            "git_change.deletions": "deletions",
+            "git_change.inserted": "inserted",
+            "git_change.removed": "removed",
             "git_change.changes": "changes",
             "git_change.binary": "binary",
         });

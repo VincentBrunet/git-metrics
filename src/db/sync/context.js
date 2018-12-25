@@ -1,24 +1,22 @@
 
 var bb = require("../../bb");
 
-module.exports = function (url, commits) {
+module.exports = function (repository, commits) {
     // Base object
     var context = {
         parsed: {
-            url: url,
+            repository: repository,
             commits: commits,
             authors: {},
             refs: {},
-            paths: {},
+            files: {},
         },
         synced: {
-            repository: {
-                id: null,
-                url: null,
-            },
-            authors: {},
+            repository: null,
             commits: {},
+            authors: {},
             refs: {},
+            files: {},
         },
     };
     // Commits content indexing
@@ -29,19 +27,19 @@ module.exports = function (url, commits) {
         bb.flow.for(commit.refs, function (idx, value) {
             context.parsed.refs[value] = value;
         });
-        // List changed paths
+        // List changed files
         bb.flow.for(commit.changes, function (idx, change) {
-            context.parsed.paths[change.path] = true;
+            context.parsed.files[change.path] = change.path;
         });
-        bb.flow.for(commit.additions, function (idx, addition) {
-            context.parsed.paths[addition] = true;
+        bb.flow.for(commit.creations, function (idx, creation) {
+            context.parsed.files[creation] = creation;
         });
         bb.flow.for(commit.deletions, function (idx, deletion) {
-            context.parsed.paths[deletion] = true;
+            context.parsed.files[deletion] = deletion;
         });
         bb.flow.for(commit.renames, function (idx, rename) {
-            context.parsed.paths[rename.before] = true;
-            context.parsed.paths[rename.after] = true;
+            context.parsed.files[rename.before] = rename.before;
+            context.parsed.files[rename.after] = rename.after;
         });
     });
     // Done

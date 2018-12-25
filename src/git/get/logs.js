@@ -15,8 +15,6 @@ module.exports = async function (path, maxDate, minDate) {
     };
     // Actual run the process
     var result = await bb.process.run(command, options);
-    // Log
-    console.log("Reading commits\t from:", maxDate.format("LL"), "\t to:", minDate.format("LL"), "\t->", result.stdout.length / 1024, "KB");
     // Only care about stdout
     return result.stdout;
 };

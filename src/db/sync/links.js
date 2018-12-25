@@ -2,6 +2,8 @@
 var bb = require("../../bb");
 
 module.exports = async function (context) {
+    // Lookup Repository
+    var syncedRepository = context.synced.repository;
     // Insert links
     var insertedLinks = [];
     bb.flow.for(context.parsed.commits, function (idx, parsedCommit) {
@@ -12,19 +14,19 @@ module.exports = async function (context) {
             console.log("Could not find synced commit", parsedCommit.hash);
             return; // Continue loop
         }
-        // Create all the refs
+        // Create all the links from all refs
         bb.flow.for(parsedCommit.refs, function (idx, value) {
             // Get associated ref
-            var refValue = context.synced.refs[value];
+            var syncedRef = context.synced.refs[value];
             // If we could not find ref value
-            if (!refValue) {
-                console.log("Could not find ref value", value);
-                return;
+            if (!syncedRef) {
+                console.log("Could not find synced ref", value);
+                return; // Continue loop
             }
             // All ready
             insertedLinks.push({
-                "git_repo_id": context.synced.repository.id,
-                "git_ref_id": refValue.id,
+                "git_repository_id": syncedRepository.id,
+                "git_ref_id": syncedRef.id,
                 "git_commit_id": syncedCommit.id,
             });
         });
