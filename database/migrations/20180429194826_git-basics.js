@@ -176,6 +176,6 @@ exports.down = $sugar.migration(function ($mg) {
     $mg.dropTable("git_file");
     $mg.dropTable("git_ref");
     $mg.dropTable("git_contributor");
-    $mg.dropTable("git_repo");
+    $mg.dropTable("git_repository");
     $mg.dropTable("git_author");
 });
