@@ -4,10 +4,11 @@ var bb = require("./src/bb");
 var git = require("./src/git");
 var db = require("./src/db");
 
+var api = require("./src/api");
+
 var commandType = process.argv[2];
 if (commandType == "API") {
-    var apiRun = require("./src/api/run");
-    apiRun.start("127.0.0.1", 8080);
+    api.start();
     return;
 }
 

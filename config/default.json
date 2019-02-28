@@ -1,0 +1,24 @@
+{
+    "api": {
+        "response": {
+            "indented": true,
+            "profiled": true,
+            "logged": true,
+            "timeout": 10000
+        },
+        "certs": {
+            "key": "certs/default.key",
+            "crt": "certs/default.crt"
+        },
+        "ports": {
+            "http": 9080,
+            "https": 9443
+        }
+    },
+    "database": {
+        "client": "sqlite3",
+        "connection": {
+            "filename": "./db.default.sqlite3"
+        }
+    }
+}

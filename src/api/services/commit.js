@@ -3,7 +3,7 @@ var bb = require("../../bb");
 
 var $this = {};
 
-$this.commitsByAuthors = function (repositoryId, authorsIds, next) {
+$this.commitsByAuthors = async function (repositoryId, authorsIds, next) {
     var batch = bb.database.batch("git_commit", authorsIds, function (query, authorsIdsChunk) {
         query.leftJoin("git_author", "git_commit.git_author_id", "git_author.id");
         query.where("git_commit.git_repo_id", repositoryId);

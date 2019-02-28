@@ -1,10 +1,11 @@
 
-var moment = require("moment");
+var moment = require("moment-timezone");
 
 module.exports = {
     array: require("./array"),
     database: require("./database"),
     dict: require("./dict"),
+    error: require("./error"),
     flow: require("./flow"),
     maths: require("./maths"),
     object: require("./object"),

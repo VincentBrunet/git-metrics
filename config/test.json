@@ -1,0 +1,21 @@
+{
+    "api": {
+        "response": {
+            "logged": false,
+            "timeout": 30000
+        },
+        "certs": {
+            "key": "certs/test.key",
+            "crt": "certs/test.crt"
+        },
+        "ports": {
+            "http": 7080,
+            "https": 7443
+        }
+    },
+    "database": {
+        "connection": {
+            "filename": "./db.test.sqlite3"
+        }
+    }
+}

@@ -1,6 +1,7 @@
 
 var typeIsArray = require("../type/isArray");
 var dictValues = require("../dict/values");
+var errorMake = require("../error/make");
 
 module.exports = async function __(query) {
     try {
@@ -21,6 +22,6 @@ module.exports = async function __(query) {
             return datas;
         }
     } catch (e) {
-        console.log("Hop", e);
+        throw errorMake("DatabaseError", "failed to execute", e);
     }
 };

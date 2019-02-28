@@ -1,5 +1,5 @@
 // Nice migration syntaxis sugars (optional but very usefull)
-var $sugar = require("../sugars");
+var $sugar = require("./sugars");
 
 // Apply migration
 exports.up = $sugar.migration(function ($mg, knex) {

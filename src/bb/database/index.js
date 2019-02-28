@@ -6,5 +6,6 @@ module.exports = {
     explain: require("./explain"),
     insert: require("./insert"),
     query: require("./query"),
+    raw: require("./raw"),
     update: require("./update"),
 };
