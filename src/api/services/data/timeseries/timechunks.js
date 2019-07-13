@@ -1,4 +1,4 @@
-var bb = require("../../../bb");
+var bb = require("../../../../bb");
 
 module.exports = function (query, column, timezone, timechunks) {
     // Timezone specific

@@ -14,15 +14,16 @@ if (commandType == "API") {
 
 var repositoryPath = process.argv[3];
 var repositoryDays = parseInt(process.argv[4]);
+var repositoryChunks = parseInt(process.argv[5]);
 
 console.log("- [Reading history of repository", repositoryPath, "for", repositoryDays, "days]");
 
-async function run(path, days) {
+async function run(path, days, chunks) {
 
     var url = await git.get.url(path);
     console.log("git.get.url", "->", url);
 
-    var history = await git.get.history(path, days);
+    var history = await git.get.history(path, days, chunks);
     console.log("git.get.history", "->", history.length, "lines");
 
     var commits = git.parse.commits(history);
@@ -70,4 +71,4 @@ async function run(path, days) {
     console.log("- [Done]")
 };
 
-run(repositoryPath, repositoryDays);
+run(repositoryPath, repositoryDays, repositoryChunks);

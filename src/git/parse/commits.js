@@ -154,8 +154,10 @@ module.exports = function (history) {
                 }
             }
         }
-        // Save all commit data parsed
-        commitsData.push(commitData);
+        // Save all commit data parsed, if commit is valid
+        if (commitData.hash != null) {
+            commitsData.push(commitData);
+        }
     }
     // Sort commits by date
     commitsData = bb.array.sortBy(commitsData, "date");

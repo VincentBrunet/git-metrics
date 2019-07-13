@@ -1,4 +1,4 @@
 
 module.exports = {
-    timeseries: require("./timeseries"),
+    data: require("./data"),
 };
