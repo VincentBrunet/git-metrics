@@ -15,24 +15,24 @@ module.exports = async function (path, days, chunks) {
         // Limit dates
         var blockMaxDate = bb.moment(now).subtract(i * blockDays, 'days');
         var blockMinDate = bb.moment(now).subtract((i + 1) * blockDays, 'days');
+        // Record time
+        var start = bb.moment();
         // Wait for logs
         var blockLogs = await thisLogs(path, blockMaxDate, blockMinDate);
-        // Only if we found something
-        //if (blockLogs.length > 0) {
-            // Cut logs in lines
-            var blockLines = bb.string.lines(blockLogs);
-            // Add result to list of logs
-            bb.array.appendArray(lines, blockLines);
-            // Log
-            //if (blockLines.length > 0) {
-                console.log(
-                    "git.get.logs",
-                    "-> ", "from:", bb.string.lpad(blockMinDate.format("LL"), 20),
-                    " | ", "to:", bb.string.lpad(blockMaxDate.format("LL"), 20),
-                    " | ", "size:", bb.string.lpad(bb.maths.int(blockLogs.length / 1024), 6), "kB"
-                );
-            //}
-        //}
+        // Elapsed time
+        var elapsed = bb.moment().diff(start);
+        // Cut logs in lines
+        var blockLines = bb.string.lines(blockLogs);
+        // Add result to list of logs
+        bb.array.appendArray(lines, blockLines);
+        // Log
+        console.log(
+            "git.get.logs",
+            " | ", "date: ", bb.string.lpad(blockMinDate.format("LL"), 20),
+            " | ", bb.string.lpad(elapsed + " ms", 8),
+            " | ", bb.string.lpad(bb.maths.int(blockLogs.length / 1024) + " kB", 8),
+            " | "
+        );
     }
     // Done
     return lines;

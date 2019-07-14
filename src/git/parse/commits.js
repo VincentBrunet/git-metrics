@@ -87,6 +87,10 @@ module.exports = function (history) {
                 commitData.date = bb.moment(dateLine[1].trim());
                 continue;
             }
+            // Merge line
+            if (line.startsWith("Merge:")) {
+                // TODO - Merges
+            }
             // Empty line
             if (line.length <= 0) {
                 if (!headerPassed) {
@@ -100,7 +104,9 @@ module.exports = function (history) {
             }
             // Comment lines
             if (headerPassed && !commentPassed) {
-                commitData.comment.push(line.trim());
+                var comment = line.trim();
+                commitData.comment.push(comment);
+                // TODO - approvals
                 continue;
             }
             // File changes lines

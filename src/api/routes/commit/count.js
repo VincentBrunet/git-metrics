@@ -13,7 +13,7 @@ module.exports = async function (request) {
     query.whereIn("git_repository_id", request.args.git_repository_ids);
     // Optional authors filters
     if (request.args.git_author_ids) {
-        query.whereNotIn("git_author_id", request.args.git_author_ids);
+        query.whereIn("git_author_id", request.args.git_author_ids);
     }
     // Optional time chunking
     services.data.timeseries.timechunks(
@@ -22,6 +22,8 @@ module.exports = async function (request) {
         request.args.timezone,
         request.args.timechunks
     );
+    // Print
+    query.debug();
     // Exec
     var results = await bb.database.execute(query);
     return results;
