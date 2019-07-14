@@ -15,6 +15,13 @@ module.exports = async function (request) {
     if (request.args.git_author_ids) {
         query.whereIn("git_author_id", request.args.git_author_ids);
     }
+    // Optional time framing
+    services.data.timeseries.timeframe(
+        query,
+        "time",
+        request.args.timezone,
+        request.args.timeframe
+    );
     // Optional time chunking
     services.data.timeseries.timechunks(
         query,
