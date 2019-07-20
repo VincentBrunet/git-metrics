@@ -15,6 +15,9 @@ module.exports = function () {
 
     thisServer.methods.get("/commit/count", thisRoutes.commit.count);
 
+    thisServer.methods.get("/change/count", thisRoutes.change.count);
+    thisServer.methods.get("/change/total", thisRoutes.change.total);
+
     thisServer.methods.get("/repository/list", thisRoutes.repository.list);
 
     //app.get("/repository/:id/authors/activity", routesAuthors.repositoryAuthorsActivity);

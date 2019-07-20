@@ -15,15 +15,16 @@ if (commandType == "API") {
 var repositoryPath = process.argv[3];
 var repositoryDays = parseInt(process.argv[4]);
 var repositoryChunks = parseInt(process.argv[5]);
+var repositoryRepeats = parseInt(process.argv[6]) || 1;
 
 console.log("- [Reading history of repository", repositoryPath, "for", repositoryDays, "days]");
 
-async function run(path, days, chunks) {
+async function cycle(path, days, chunks, offset) {
 
     var url = await git.get.url(path);
     console.log("git.get.url", "->", url);
 
-    var history = await git.get.history(path, days, chunks);
+    var history = await git.get.history(path, days, chunks, offset);
     console.log("git.get.history", "->", history.length, "lines");
 
     var commits = git.parse.commits(history);
@@ -68,7 +69,14 @@ async function run(path, days, chunks) {
     var renames = await db.sync.renames(context);
     console.log("db.sync.renames", "->", renames.length, "renames");
 
-    console.log("- [Done]")
 };
 
-run(repositoryPath, repositoryDays, repositoryChunks);
+async function run() {
+    for (var i = 0; i < repositoryRepeats; i++) {
+        console.log("- [Start]", i);
+        await cycle(repositoryPath, repositoryDays, repositoryChunks, i);
+        console.log("- [Done]", i);
+    }
+}
+
+run();

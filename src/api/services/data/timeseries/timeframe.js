@@ -3,11 +3,12 @@ var bb = require("../../../../bb");
 function frame(query, column, tz, timeframe, code) {
     var found = timeframe && timeframe == code;
     if (found) {
+        var created = column.replace(".", "_") + "_" + code;
         var obj = {};
-        obj[column + "_" + code] = bb.database.raw("date_trunc('" + code + "', timezone('" + tz + "', " + column + "))");
+        obj[created] = bb.database.raw("date_trunc('" + code + "', timezone('" + tz + "', " + column + "))");
         query.columns(obj);
-        query.groupBy(column + "_" + code);
-        query.orderBy(column + "_" + code);
+        query.groupBy(created);
+        query.orderBy(created);
     }
 };
 

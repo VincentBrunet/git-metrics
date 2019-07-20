@@ -4,11 +4,13 @@ var services = require("../../services");
 
 module.exports = async function (request) {
     // Query selection
-    var query = bb.database.query("git_commit");
+    var query = bb.database.query("git_change");
+    query.leftJoin("git_commit", "git_commit.id", "git_change.git_commit_id");
+    query.leftJoin("git_file", "git_file.id", "git_change.git_file_id");
     // Reading
     query.select();
-    // Count unique commits
-    query.count("id as value");
+    // Count sum of changes
+    query.sum("git_change.total as value");
     // Optional repository filters
     services.data.filters.ids(
         query,
@@ -22,6 +24,12 @@ module.exports = async function (request) {
         "git_commit.git_author_id",
         request.args.git_author_ids,
         request.args.git_author_id
+    );
+    // Optional file path pattern filter
+    services.data.filters.pattern(
+        query,
+        "git_file.path",
+        request.args.git_file_paths
     );
     // Optional time limits
     services.data.timeseries.timelimits(
