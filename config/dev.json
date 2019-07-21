@@ -14,8 +14,14 @@
         }
     },
     "database": {
+        "client": "pg",
+        "version": "7.2",
         "connection": {
-            "filename": "./db.dev.sqlite3"
+            "host": "127.0.0.1",
+            "user": "vincent",
+            "port": 5432,
+            "password": "",
+            "database": "git-metrics"
         }
     }
 }

@@ -13,10 +13,15 @@ module.exports = function () {
     });
     */
 
+    thisServer.methods.get("/commit/changes", thisRoutes.commit.changes);
     thisServer.methods.get("/commit/count", thisRoutes.commit.count);
+    thisServer.methods.get("/commit/creations", thisRoutes.commit.creations);
+    thisServer.methods.get("/commit/deletions", thisRoutes.commit.deletions);
 
     thisServer.methods.get("/change/count", thisRoutes.change.count);
     thisServer.methods.get("/change/total", thisRoutes.change.total);
+
+    thisServer.methods.get("/group/list", thisRoutes.group.list);
 
     thisServer.methods.get("/repository/list", thisRoutes.repository.list);
 

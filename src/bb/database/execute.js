@@ -22,6 +22,11 @@ module.exports = async function __(query) {
             return datas;
         }
     } catch (e) {
+        console.log("=============");
+        query.debug();
+        console.log("=============");
+        console.log("FAILED", e);
+        console.log("=============");
         throw errorMake("DatabaseError", "failed to execute", e);
     }
 };

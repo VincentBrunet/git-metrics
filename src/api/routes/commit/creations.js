@@ -6,12 +6,12 @@ var _common = require("./_common");
 
 module.exports = async function (request) {
     // Query selection
-    var query = bb.database.query("git_change");
+    var query = bb.database.query("git_commit");
     // Reading
     query.select();
-    // Count sum of changes
-    query.sum("git_change.total as value");
-    // Execute
-    var result = await _common(request, query);
-    return result;
+    // Count unique commits
+    query.sum("git_commit.creations as value");
+    // Results
+    var results = await _common(request, query);
+    return results;
 };

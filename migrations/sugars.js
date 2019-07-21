@@ -129,4 +129,8 @@ $sugars.migration = function (next) {
   }
 };
 
+$sugars.up = function () {};
+$sugars.down = function () {};
+
 module.exports = $sugars;
+

@@ -1,4 +1,6 @@
 
+var path = require('path')
+
 var bb = require("../../bb");
 
 var lookup = require("../lookup");
@@ -9,11 +11,12 @@ module.exports = async function (context) {
     // Insert files
     var insertedFiles = [];
     // Create all the files
-    bb.flow.for(context.parsed.files, function (key, path) {
+    bb.flow.for(context.parsed.files, function (key, file) {
         // All ready
         insertedFiles.push({
             "git_repository_id": syncedRepository.id,
-            "path": path,
+            "path": file,
+            "extension": file.split('.').pop().toLowerCase(),
         });
     });
     // Insert all files

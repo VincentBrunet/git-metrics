@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev_reset": "NODE_ENV=dev knex migrate:rollback && NODE_ENV=dev knex migrate:latest",
     "dev": "NODE_ENV=dev node index.js API",
-    "upload-self": "node index.js UPLOAD . 100 1 100",
-    "upload-nano": "node index.js UPLOAD ../../Nanome/nanome-core 100 1 100",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "upload-self": "NODE_ENV=dev node index.js UPLOAD . 100 1 100",
+    "upload-nano": "NODE_ENV=dev node index.js UPLOAD ../../Nanome/nanome-core 100 1 100"
   },
   "repository": {
     "type": "git",

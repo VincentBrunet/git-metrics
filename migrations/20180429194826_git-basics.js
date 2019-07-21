@@ -62,6 +62,7 @@ exports.up = $sugar.migration(function ($mg, knex) {
         $mg.addForeignLink(table, "git_repository_id", "git_repository.id");
         // File keys
         $mg.addColumn(table, "path", "text");
+        $mg.addColumn(table, "extension", "text");
         // No connection with same commit and ref (and repo)
         $mg.addUnique(table, ["git_repository_id", "path"]);
     });

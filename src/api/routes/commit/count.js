@@ -2,51 +2,16 @@ var bb = require("../../../bb");
 
 var services = require("../../services");
 
+var _common = require("./_common");
+
 module.exports = async function (request) {
     // Query selection
     var query = bb.database.query("git_commit");
     // Reading
     query.select();
     // Count unique commits
-    query.count("id as value");
-    // Optional repository filters
-    services.data.filters.ids(
-        query,
-        "git_commit.git_repository_id",
-        request.args.git_repository_ids,
-        request.args.git_repository_id
-    );
-    // Optional authors filters
-    services.data.filters.ids(
-        query,
-        "git_commit.git_author_id",
-        request.args.git_author_ids,
-        request.args.git_author_id
-    );
-    // Optional time limits
-    services.data.timeseries.timelimits(
-        query,
-        "git_commit.time",
-        request.args.timezone,
-        request.args.timelimits
-    );
-    // Optional time framing
-    services.data.timeseries.timeframe(
-        query,
-        "git_commit.time",
-        request.args.timezone,
-        request.args.timeframe
-    );
-    // Optional time chunking
-    services.data.timeseries.timechunks(
-        query,
-        "git_commit.time",
-        request.args.timezone,
-        request.args.timechunks
-    );
-    // Print
-    query.debug();
-    // Exec
-    var results = await bb.database.execute(query);
+    query.count("git_commit.id as value");
+    // Execute
+    var results = await _common(request, query);
     return results;
 };
