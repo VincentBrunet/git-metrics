@@ -30,6 +30,13 @@ module.exports = async function (request, query) {
         request.args.git_author_id
     );
 
+    // Optional repository repositorying
+    services.data.groups.column(
+        query,
+        "git_commit.git_repository_id",
+        "git_repository_id",
+        request.args.groups
+    );
     // Optional group grouping
     services.data.groups.column(
         query,

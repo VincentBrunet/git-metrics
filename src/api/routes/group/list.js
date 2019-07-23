@@ -26,6 +26,12 @@ module.exports = async function (request) {
     // Optional sorting
     services.data.orders.column(
         query,
+        "git_contributor.git_repository_id",
+        "git_repository_id",
+        request.args.orders,
+    );
+    services.data.orders.column(
+        query,
         "ui_group.name",
         "ui_group_name",
         request.args.orders,
